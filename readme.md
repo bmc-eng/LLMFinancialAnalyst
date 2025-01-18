@@ -19,6 +19,7 @@ The following files should be added into the .gitignore file:
 .ipynb_checkpoints
 .virtual_documents
 .__pycache__
+__pycache__
 
 # Files
 pass.txt
