@@ -1,6 +1,9 @@
-pass.txt
-.env
+# Folders
 .Trash-10000
 .ipynb_checkpoints
 .virtual_documents
 .__pycache__
+
+# Files
+pass.txt
+.env
