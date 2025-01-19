@@ -5,7 +5,9 @@ Dissertation project for Computer Science MSc. This project will investigate the
 ## Build Steps
 
 ### Get Data
-V1 is complete, gets the data and pivots into a format that can be converted into a prompt easily
+V1 is complete, gets the data and pivots into a format that can be converted into a prompt easily. To do:
+- Get the reported date to make sure this is point-in-time
+
 
 ### Company Object
 NEED TO BUILD: Each company should have its own object - this will have the IS, BS and pricing data for the security + the revision date for the datasets to be used when adding. This will be used to build the prompts.
