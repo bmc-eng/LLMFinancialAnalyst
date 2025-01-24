@@ -5,8 +5,23 @@ Dissertation project for Computer Science MSc. This project will investigate the
 ## Build Steps
 
 ### Get Data
-V1 is complete, gets the data and pivots into a format that can be converted into a prompt easily. To do:
+V1 is complete, gets the data and pivots into a format that can be converted into a prompt easily. To do need a better V2 version that is truely point in time:
+
+- Get a list of reporting dates by company
+- Create a company specific object
+- - Name
+- - reporting date []
+- - - income statement (-5 periods)
+- - - balance sheet (-5 periods)
+- - - pricing (-1Y daily)
+- - - prompt
+- - - result []
+- - populate_data()
+
+- Create a list of trades by date, company and buy/sell/ hold based on LLM output
 - Get the reported date to make sure this is point-in-time
+
+
 
 
 ### Company Object
