@@ -9,7 +9,7 @@ V1 is complete, gets the data and pivots into a format that can be converted int
 
 - Get a list of reporting dates by company
 - Create a company specific object
-    - Name
+    - name
     - reporting date []
         - income statement (-5 periods)
         - balance sheet (-5 periods)
