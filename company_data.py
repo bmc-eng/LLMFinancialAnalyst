@@ -31,6 +31,22 @@ class SecurityData:
         except:
             return 'no data'
         
+    def get_prompt(self, date, security, system_prompt):
+        is_statement = self.get_security_statement(date, security, 'is')
+        bs_statement = self.get_security_statement(date, security, 'bs')
+        px_values = self.get_security_statement(date, security, 'px')
+        
+        company_info = "Income Statement:" + is_statement.to_string() + "\n Balance Sheet: " + bs_statement.to_string() + "\n Historical Price: " + px_values.to_string()
+        
+        prompt = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": company_info}
+
+        ]
+        return prompt
+
+        
+    
     def get_security_statement(self, date, security, statement_type):
         # Statement type must be of 'is', 'bs' or 'px'
         try:
@@ -41,3 +57,4 @@ class SecurityData:
     
     def get_all_data(self):
         return self.data
+    
