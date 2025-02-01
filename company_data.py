@@ -40,7 +40,7 @@ class SecurityData:
         
         prompt = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": company_info}
+            {"role": "user", "content": company_info},
 
         ]
         return prompt
@@ -50,10 +50,19 @@ class SecurityData:
     def get_security_statement(self, date, security, statement_type):
         # Statement type must be of 'is', 'bs' or 'px'
         try:
+            # Load the security/ date/ statement and convert to DataFrame
             statement_data = json.loads(self.data[date][security][statement_type])
-            return pd.DataFrame(json.loads(statement_data))
-        except:
-            return 'no data'
+            df_sec = pd.DataFrame(json.loads(statement_data))
+            
+            # Fix issue with the date format appearing incorrectly in JSON
+            if statement_type == 'px':
+                df_fix = df_sec.reset_index()
+                df_fix['Date'] = pd.to_datetime(df_fix['index'], unit='ms')
+                return df_fix.set_index('Date')[['Price']]
+            else:
+                return df_sec
+        except Exception as err:
+            return err
     
     def get_all_data(self):
         return self.data
