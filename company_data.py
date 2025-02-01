@@ -36,7 +36,7 @@ class SecurityData:
         bs_statement = self.get_security_statement(date, security, 'bs')
         px_values = self.get_security_statement(date, security, 'px')
         
-        company_info = "Income Statement:" + is_statement.to_string() #+ "\n Balance Sheet: " + bs_statement.to_string() + "\n Historical Price: " + px_values.to_string()
+        company_info = "Income Statement:" + is_statement.to_string() + "\n Balance Sheet: " + bs_statement.to_string() + "\n Historical Price: " + px_values.to_string()
         
         prompt = [
             {"role": "system", "content": system_prompt},
