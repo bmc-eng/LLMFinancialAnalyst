@@ -44,7 +44,7 @@ class S3ModelHelper():
         return files
     
     # re-load the model from s3
-    def load_model(self, model_name):
+    def load_model(self, model_name, quant_config=None):
         client = boto3.client("s3")
         folder = f'{self.username}/{self.s3_sub_folder}/{model_name}'
 
@@ -55,7 +55,10 @@ class S3ModelHelper():
             key = file['Key']
             file_name = model_name + '/' + key[key.find(model_name + '/') + len(model_name) + 1:]
             client.download_file(self.bucket, key, file_name)
-        return AutoModelForCausalLM.from_pretrained(model_name, device_map='auto', torch_dtype=torch.bfloat16 )
+        if quant_config == None:
+            return AutoModelForCausalLM.from_pretrained(model_name, device_map='auto', torch_dtype=torch.bfloat16 )
+        else:
+            return AutoModelForCausalLM.from_pretrained(model_name, device_map='auto', quantization_config=quant_config)
     
     
     def delete_model_in_s3(self, model_name):
