@@ -24,7 +24,8 @@ V1 is complete, gets the data and pivots into a format that can be converted int
 
 ### Model Development Notes
 
-#### Explored vllm and tensor_parallel to achieve distributed inference and larger model support
+#### Explored vllm and tensor_parallel - 4th Feb
+Changed the logic for generating the prompt to reduce the token size of the prompt. It is now 4,257 vs 5,165 before reduction. 
 Checked out:
 - https://medium.com/tr-labs-ml-engineering-blog/tensor-parallel-llm-inferencing-09138daf0ba7
 - https://www.kaggle.com/code/blacksamorez/tensor-parallel-int4-llm/
