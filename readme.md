@@ -22,6 +22,16 @@ V1 is complete, gets the data and pivots into a format that can be converted int
 - Get the reported date to make sure this is point-in-time
 
 
+### Model Development Notes
+
+#### Explored vllm and tensor_parallel to achieve distributed inference and larger model support
+Checked out:
+- https://medium.com/tr-labs-ml-engineering-blog/tensor-parallel-llm-inferencing-09138daf0ba7
+- https://www.kaggle.com/code/blacksamorez/tensor-parallel-int4-llm/
+
+#### Single security run of the model - 3rd Feb 2025
+Using Llama 3.3 3B parameter model with no fine tuning. Number of tokens in the prompt 5,165 and need to reduce this. Considering changing the number of fields that are included in the prompt to speed this up. Also need to look at multi-gpu and splitting inference across multiple gpus to be able to test larger models.
+
 
 
 ### Company Object

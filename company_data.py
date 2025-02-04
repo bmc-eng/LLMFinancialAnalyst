@@ -7,6 +7,7 @@ import pandas as pd
 
 # Helper class to manage the quarterly point in time datasets
 class SecurityData:
+    # Initiatise with a dataset. 
     def __init__(self, dataset_folder, dataset_name, use_local=None):
         self.data = {}
         
@@ -21,16 +22,19 @@ class SecurityData:
                 self.data = json.load(f)
         else:
             self.data = use_local
-        
+    
+    # Get all the dates for backtesting
     def get_dates(self):
         return list(self.data.keys())
     
+    # Get all the securities reporting on a given date
     def get_securities_reporting_on_date(self, date):
         try:
             return list(self.data[date].keys())
         except:
             return 'no data'
-        
+    
+    # Get the prompt for a security on a given date with all three statements
     def get_prompt(self, date, security, system_prompt):
         is_statement = self.get_security_statement(date, security, 'is')
         bs_statement = self.get_security_statement(date, security, 'bs')
@@ -60,9 +64,18 @@ class SecurityData:
                 df_fix['Date'] = pd.to_datetime(df_fix['index'], unit='ms')
                 return df_fix.set_index('Date')[['Price']]
             else:
-                return df_sec
+                return self._clean_security_info(df_sec)
         except Exception as err:
             return err
+    
+    # Clean up the dataframe to reduce the number of tokens
+    def _clean_security_info(self, df):
+        # drop the numbers from the labels and remove Adj
+        df['items'] = [s[3:].replace(' (Adj)','') for s in df.index]
+        df = df.set_index('items')
+        return df.drop_duplicates()
+        
+    
     
     def get_all_data(self):
         return self.data
