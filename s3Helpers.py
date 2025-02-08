@@ -100,6 +100,14 @@ class Logger:
             files.append(key)
         return files
     
+    def get_log(self, logname):
+        path_to_file = f's3://{self.bucket}/{self.username}/{self.s3_sub_folder}/logs/{logname}'
+        
+        with self.s3.open(path_to_file, 'rb') as file:
+            data = json.load(file)
+            
+        return data
+    
    
         
     
