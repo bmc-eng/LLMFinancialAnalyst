@@ -1,10 +1,12 @@
 import boto3
 import os
 import torch
+import json
 
 from transformers import AutoModelForCausalLM
+from s3fs import S3FileSystem
 
-
+# Class to help with loading models
 class S3ModelHelper():
     
     # Initialise with the folder for the model
@@ -12,6 +14,7 @@ class S3ModelHelper():
         self.username = os.environ['BQUANT_USERNAME']
         self.s3_sub_folder = s3_sub_folder
         self.bucket = os.environ['BQUANT_SANDBOX_USER_BUCKET']
+        self.client = boto3.client("s3")
         
     # move model from local folder to an s3 folder
     def save_model_to_s3(self, local_folder, s3_folder):
@@ -70,3 +73,34 @@ class S3ModelHelper():
             client.delete_object(Bucket=self.bucket, Key=key)
             print(key)
         print("Files deleted in S3")
+
+class Logger:
+    def __init__(self, s3_sub_folder):
+        self.username = os.environ['BQUANT_USERNAME']
+        self.s3_sub_folder = s3_sub_folder
+        self.bucket = os.environ['BQUANT_SANDBOX_USER_BUCKET']
+        self.s3 = S3FileSystem()
+        self.client = boto3.client("s3")
+        
+    def log(self, data, filename):
+        
+        path_to_s3 = f's3://{self.bucket}/{self.username}/{self.s3_sub_folder}/logs/{filename}'
+
+        with self.s3.open(path_to_s3, 'w') as file:
+            json.dump(data, file)
+            
+        print("Saved " + filename)
+        
+    def get_list_of_logs(self):
+        folder = f'{self.username}/{self.s3_sub_folder}/logs'
+
+        files = []
+        for file in self.client.list_objects(Bucket=self.bucket, Prefix=folder)['Contents']:
+            key = file['Key']
+            files.append(key)
+        return files
+    
+   
+        
+    
+    

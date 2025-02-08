@@ -48,6 +48,12 @@ class SecurityData:
 
         ]
         return prompt
+    
+    def total_securities_in_backtest(self):
+        count = 0
+        for date in self.get_dates():
+            count += len(self.get_securities_reporting_on_date(date))
+        return count
 
         
     
