@@ -82,6 +82,12 @@ class Logger:
         self.s3 = S3FileSystem()
         self.client = boto3.client("s3")
         
+    def _write(self, data, filepath):
+        with self.s3.open(path_to_s3, 'w') as file:
+            json.dump(data, file)
+            
+        print("Saved " + filename)
+    
     def log(self, data, filename):
         
         path_to_s3 = f's3://{self.bucket}/{self.username}/{self.s3_sub_folder}/logs/{filename}'
@@ -108,6 +114,19 @@ class Logger:
             
         return data
     
+    def create_master_log(self, save_to_s3=True, filename='output_logs.json'):
+                
+        log_list = self.get_list_of_logs()
+        logs = []
+        for logfile in log_list:
+            logs += self.get_log(logfile[logfile.find('/logs/') + 6:])
+            
+        if save_to_s3:
+            path_to_s3 = f's3://{self.bucket}/{self.username}/{self.s3_sub_folder}/{filename}'
+            self._write(path_to_s3, logs)
+            
+        return logs
+        
    
         
     
