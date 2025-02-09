@@ -83,27 +83,28 @@ class Logger:
         self.client = boto3.client("s3")
         
     def _write(self, data, filepath):
-        with self.s3.open(path_to_s3, 'w') as file:
+        print(filepath)
+        with self.s3.open(filepath, 'w') as file:
             json.dump(data, file)
             
-        print("Saved " + filename)
+        print("Saved " + filepath)
     
     def log(self, data, filename):
         
         path_to_s3 = f's3://{self.bucket}/{self.username}/{self.s3_sub_folder}/logs/{filename}'
-
-        with self.s3.open(path_to_s3, 'w') as file:
-            json.dump(data, file)
-            
-        print("Saved " + filename)
+        self._write(data, path_to_s3)
+        
         
     def get_list_of_logs(self):
         folder = f'{self.username}/{self.s3_sub_folder}/logs'
 
         files = []
-        for file in self.client.list_objects(Bucket=self.bucket, Prefix=folder)['Contents']:
-            key = file['Key']
-            files.append(key)
+        try:
+            for file in self.client.list_objects(Bucket=self.bucket, Prefix=folder)['Contents']:
+                key = file['Key']
+                files.append(key)
+        except KeyError:
+            pass
         return files
     
     def get_log(self, logname):
@@ -123,9 +124,21 @@ class Logger:
             
         if save_to_s3:
             path_to_s3 = f's3://{self.bucket}/{self.username}/{self.s3_sub_folder}/{filename}'
-            self._write(path_to_s3, logs)
+            data = {'content': logs}
+            self._write(data, path_to_s3)
             
         return logs
+    
+    def clear_all_logs(self):
+
+        folder = f'{self.username}/{self.s3_sub_folder}/logs'
+        
+        for file in self.client.list_objects(Bucket=self.bucket, Prefix=folder)['Contents']:
+            key = file['Key']
+            self.client.delete_object(Bucket=self.bucket, Key=key)
+            print("Deleted: ", key)
+        print("Files deleted in S3")
+        
         
    
         
