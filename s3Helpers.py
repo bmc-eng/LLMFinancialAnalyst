@@ -49,7 +49,7 @@ class S3ModelHelper():
     # re-load the model from s3
     def load_model(self, model_name, quant_config=None):
         client = boto3.client("s3")
-        folder = f'{self.username}/{self.s3_sub_folder}/{model_name}'
+        folder = f'{self.username}/{self.s3_sub_folder}/{model_name}/'
 
         if not os.path.exists(model_name):
             os.makedirs(model_name)
