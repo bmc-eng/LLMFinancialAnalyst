@@ -10,7 +10,10 @@ SYSTEM_PROMPTS = {
         {'decision': SELL, 'confidence score': 90, 'reason': 'Price has declined and EPS is falling'}"
     },
     
-    
+    'CoT': {
+        'date': '2025-02-10',
+        'prompt': "You are a financial analyst tasked with analyzing the financial statements of a company to predict the direction of future earnings.Follow the steps below to perform the analysis. 1. Identify notable changes in the balance sheet and income statement. 2. Compute key financial ratios to understand the health of the company. State the formula before calculating. Compute profitability ratios, leverage ratios, liquidity ratios and efficiency ratios. 3. Interpret each of the ratios. 4. Predict the direction of future earnings in JSON format with a clear recommendation and size of the increase or decrease: {'earnings':'INCREASE', 'magnitude':'LARGE'} or {'earnings':'DECREASE','SMALL'} 5. Provide a rational in less than 250 words. Company Financial Statements: "
+    }
     
     
 }
