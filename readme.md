@@ -1,6 +1,6 @@
 # LLM Financial Analyst
 
-Dissertation project for Computer Science MSc. This project will investigate the use of LLMs for financial analysis of equities on the SPX and FTSE 100 companies.
+Dissertation project for Computer Science MSc. This project will investigate the use of LLMs for financial analysis of equities on the SPX, Dow Jones and FTSE 100 companies.
 
 ## Build Steps
 
@@ -23,6 +23,9 @@ V1 is complete, gets the data and pivots into a format that can be converted int
 
 
 ### Model Development Notes
+
+#### Three runs of the model to date - 14th Feb
+
 
 #### Explored vllm and tensor_parallel - 4th Feb
 Changed the logic for generating the prompt to reduce the token size of the prompt. It is now 4,257 vs 5,165 before reduction. 
