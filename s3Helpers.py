@@ -28,12 +28,17 @@ class S3ModelHelper():
         print(res)
         
     # need to clear the files from local drive after downloading the model
-    def clear_folder(self, local_folder):
-        for root, dirs, files in os.walk(local_folder, topdown=False):
-            for name in files:
-                os.remove(os.path.join(root, name))
-            for name in dirs:
-                os.rmdir(os.path.join(root, name))
+    def clear_folder(self, local_folder, count=0):
+        try:
+            for root, dirs, files in os.walk(local_folder, topdown=False):
+                for name in files:
+                    os.remove(os.path.join(root, name))
+                for name in dirs:
+                    os.rmdir(os.path.join(root, name))
+        except: 
+            # check not stuck in loop
+            if count <= 3:
+                self.clear_folder(local_folder, count + 1)
      
     # list all local files in S3
     def list_model_files(self, model_name):
