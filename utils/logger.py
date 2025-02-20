@@ -3,6 +3,8 @@ import os
 import torch
 import json
 
+from s3fs import S3FileSystem
+
 
 class Logger:
     
