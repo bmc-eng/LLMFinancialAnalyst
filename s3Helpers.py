@@ -16,15 +16,26 @@ class S3ModelHelper():
         self.bucket = os.environ['BQUANT_SANDBOX_USER_BUCKET']
         self.client = boto3.client("s3")
         
+    def _get_model(self, model_name):
+        folder = f'{self.username}/{self.s3_sub_folder}/{model_name}/'
+
+        if not os.path.exists(model_name):
+            os.makedirs(model_name)
+
+        for file in self.client.list_objects(Bucket=self.bucket, Prefix=folder)['Contents']:
+            key = file['Key']
+            file_name = model_name + '/' + key[key.find(model_name + '/') + len(model_name) + 1:]
+            self.client.download_file(self.bucket, key, file_name)
+    
+    
     # move model from local folder to an s3 folder
     def save_model_to_s3(self, local_folder, s3_folder):
-        client = boto3.client("s3")
         
         files = os.listdir(local_folder)
         for file in files:
             local_path = f'{local_folder}/{file}'
             obj_name = f'{self.username}/{self.s3_sub_folder}/{s3_folder}/{file}'
-            res = client.upload_file(local_path, self.bucket, obj_name)
+            res = self.client.upload_file(local_path, self.bucket, obj_name)
         print(res)
         
     # need to clear the files from local drive after downloading the model
@@ -42,27 +53,19 @@ class S3ModelHelper():
      
     # list all local files in S3
     def list_model_files(self, model_name):
-        client = boto3.client("s3")
+    
         folder = f'{self.username}/{self.s3_sub_folder}/{model_name}'
 
         files = []
-        for file in client.list_objects(Bucket=self.bucket, Prefix=folder)['Contents']:
+        for file in self.client.list_objects(Bucket=self.bucket, Prefix=folder)['Contents']:
             key = file['Key']
             files.append(key)
         return files
     
     # re-load the model from s3
     def load_model(self, model_name, accelerator=None):
-        client = boto3.client("s3")
-        folder = f'{self.username}/{self.s3_sub_folder}/{model_name}/'
-
-        if not os.path.exists(model_name):
-            os.makedirs(model_name)
-
-        for file in client.list_objects(Bucket=self.bucket, Prefix=folder)['Contents']:
-            key = file['Key']
-            file_name = model_name + '/' + key[key.find(model_name + '/') + len(model_name) + 1:]
-            client.download_file(self.bucket, key, file_name)
+        self._get_model(model_name)
+        
         if accelerator == None:
             return AutoModelForCausalLM.from_pretrained(model_name, device_map='auto', torch_dtype=torch.bfloat16 )
         else:
