@@ -58,56 +58,63 @@ class InferenceRun():
             model = AutoModelForCausalLM.from_pretrained(model_id, device_map=device, quantization_config=self.model_quant)
         else:
             model = AutoModelForCausalLM.from_pretrained(model_id, device_map=device, torch_dtype=torch.bfloat16)
- 
         return model
     
-    def load_model_from_storage(model_id, device='auto'):
+    def load_model_from_storage(model_id_s3, device='auto'):
         helper = ModelHelper('tmp/fs')
-        model = helper.load_model(model_id_s3, device)
+        return helper.load_model(model_id_s3, device)
         
         
+    def load_model_multi_gpu(self, accelerator):
+        if self.model_reload:
+            raise Exception("Download the model first to S3 storage before multi-GPU inference!")
+        else:
+            return load_model_from_storage(self.model_id_s3, device={"":accelerator.process_index})
     
-    def load_model(self):
+    
+    def load_model_single(self):
         
         # check if requesting model reload
         if self.model_reload:
-            if USE_QUANTIZATION:
-                model = AutoModelForCausalLM.from_pretrained(model_id, device_map={"":accelerator.process_index}, quantization_config=quant_config)
+            #Reload the model from Huggingface
+            if self.model.quant != None:
+                
+                model = self.load_model_from_hf(self.model_hf_id, True)
             else:
-                model = AutoModelForCausalLM.from_pretrained(model_id, device_map={"":accelerator.process_index}, torch_dtype=torch.bfloat16)
-            tokenizer = AutoTokenizer.from_pretrained(model_id)
+                model = self.load_model_from_hf(self.model_hf_id)
         else:
-            # load the pre-saved model from S3
-            model_helper = s3Helpers.S3ModelHelper(s3_sub_folder='tmp/fs')
-            model = model_helper.load_model(model_id_s3, accelerator)
-            tokenizer = AutoTokenizer.from_pretrained(model_id)
-            #model_helper.clear_folder(model_id_s3)
-
-        print(f"Memory footprint: {model.get_memory_footprint() / 1e9:,.1f} GB")
-        return model, tokenizer
+            # Load model from memory
+            model = self.load_model_from_storage(self.model_s3_id)
+            
+        return model
     
     
     
     def run(self):
         """
         Entry point for running an inference task on a large list of prompts
-        This will run with multi-gpus when called
+        This will run in either single model mode or multi-gpu mode
         
         
         """
         if self.multi_gpu:
             accelerator = Accelerator()
-            model, tokenizer = load_model(self.model_id, self.model_id_s3, accelerator)
+            model = self.load_model_multi_gpu(self.model_id_s3, accelerator)
 
             accelerator.wait_for_everyone()
-
+            if accelerator.is_main_process:
+                print(f"Memory footprint: {model.get_memory_footprint() / 1e9:,.1f} GB")
+        else:
+            model = self.load_model_single()
+            print(f"Memory footprint: {model.get_memory_footprint() / 1e9:,.1f} GB")
+        
+        tokenizer = AutoTokenizer.from_pretrained(model_id)
 
         
 
-        company_data = get_all_data()
+        security_data = company_data.SecurityData('tmp/fs',self.dataset)
 
         # set up system prompts
-
         all_prompts = create_all_prompts(company_data, system_prompt)
 
         # batch into groups of 8
