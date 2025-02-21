@@ -64,12 +64,11 @@ class ModelHelper():
     
     # re-load the model from s3
     def load_model(self, model_name, device):
+        print(model_name)
         self._get_model(model_name)
         
-        if accelerator == None:
-            return AutoModelForCausalLM.from_pretrained(model_name, device_map=device, torch_dtype=torch.bfloat16 )
-        else:
-            return AutoModelForCausalLM.from_pretrained(model_name, device_map=device, torch_dtype=torch.bfloat16)
+        return AutoModelForCausalLM.from_pretrained(model_name, device_map=device, torch_dtype=torch.bfloat16 )
+        
     
     
     def delete_model_in_s3(self, model_name):

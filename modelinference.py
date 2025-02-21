@@ -15,18 +15,19 @@ import pandas as pd
 from IPython.display import Markdown, display
 from ipywidgets import IntProgress, Label, HBox
 
-from helper import get_s3_folder
+#from helper import get_s3_folder
 
 import company_data
 import prompts
-from utils.modelHelper import ModelHelper
+import utils.modelHelper as mh
+#from utils.modelHelper import ModelHelper
 from utils.logger import Logger
 
 from prompts import SYSTEM_PROMPTS
 
 
 class RunConfig():
-    
+    pass
 
 
 class InferenceRun():
@@ -60,16 +61,16 @@ class InferenceRun():
             model = AutoModelForCausalLM.from_pretrained(model_id, device_map=device, torch_dtype=torch.bfloat16)
         return model
     
-    def load_model_from_storage(model_id_s3, device='auto'):
-        helper = ModelHelper('tmp/fs')
-        return helper.load_model(model_id_s3, device)
+    def load_model_from_storage(self, model_location, device='auto'):
+        helper = mh.ModelHelper('tmp/fs')
+        return helper.load_model(model_location, device)
         
         
     def load_model_multi_gpu(self, accelerator):
         if self.model_reload:
             raise Exception("Download the model first to S3 storage before multi-GPU inference!")
         else:
-            return load_model_from_storage(self.model_id_s3, device={"":accelerator.process_index})
+            return load_model_from_storage(self.model_s3_id, device={"":accelerator.process_index})
     
     
     def load_model_single(self):
@@ -84,6 +85,7 @@ class InferenceRun():
                 model = self.load_model_from_hf(self.model_hf_id)
         else:
             # Load model from memory
+            print(f'in class: {self.model_s3_id}')
             model = self.load_model_from_storage(self.model_s3_id)
             
         return model
