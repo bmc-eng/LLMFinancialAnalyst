@@ -63,13 +63,13 @@ class ModelHelper():
         return files
     
     # re-load the model from s3
-    def load_model(self, model_name, accelerator=None):
+    def load_model(self, model_name, device):
         self._get_model(model_name)
         
         if accelerator == None:
-            return AutoModelForCausalLM.from_pretrained(model_name, device_map='auto', torch_dtype=torch.bfloat16 )
+            return AutoModelForCausalLM.from_pretrained(model_name, device_map=device, torch_dtype=torch.bfloat16 )
         else:
-            return AutoModelForCausalLM.from_pretrained(model_name, device_map={"":accelerator.process_index}, torch_dtype=torch.bfloat16)
+            return AutoModelForCausalLM.from_pretrained(model_name, device_map=device, torch_dtype=torch.bfloat16)
     
     
     def delete_model_in_s3(self, model_name):

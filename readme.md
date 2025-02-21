@@ -24,6 +24,10 @@ V1 is complete, gets the data and pivots into a format that can be converted int
 
 ### Model Development Notes
 
+#### Hitting out of memory issues with inference tasks
+Refactoring of codebase to allow for multi-GPU inference
+
+
 #### Three runs of the model to date - 14th Feb
 
 
