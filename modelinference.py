@@ -6,9 +6,8 @@ import datetime
 
 import transformers
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
-from huggingface_hub import login
 import torch
-from accelerate import Accelerator
+from accelerate import Accelerator, notebook_launcher
 from accelerate.utils import gather_object
 
 import pandas as pd
@@ -25,6 +24,8 @@ from utils.logger import Logger
 
 from prompts import SYSTEM_PROMPTS
 
+from tqdm import tqdm
+
 
 class RunConfig():
     pass
@@ -38,6 +39,7 @@ class InferenceRun():
     def __init__(self, run_name, run_config):
         self.run_name = run_name # Description of the model run
         self.run_date = datetime.datetime.now()
+        self.helper = mh.ModelHelper('tmp/fs')
         
         # model parameters
         self.model_hf_id  = run_config['model_hf_id']   # Model id for tokenizer :str
@@ -104,38 +106,53 @@ class InferenceRun():
         return model
     
     
+    def save_run(self, results):
+        self.logger.log(results, f"results - {self.run_name}")
+        with open(f'{self.project_folder}/results - {self.run_date}.json') as f:
+            json.dump(results, f)
+        print("Run Completed!")
+        
+    
+    
     def create_all_prompts(self, is_save_prompts=False):
         """
         Create all of the prompts ready for inference
         """
-        company_info = company_data.SecurityData('tmp/fs',self.dataset_loc)
+        if not os.path.exists(f'Data/{self.run_name}/prompts.json'):
+            company_info = company_data.SecurityData('tmp/fs',self.dataset_loc)
+
+            all_prompts = []
+            # Get all the dates
+            dates = company_info.get_dates()
+            # Loop through each date
+            for date in dates:
+                # Pull out the securities reporting on that date
+                securities = company_info.get_securities_reporting_on_date(date)
+                # Loop through the securities
+                for security in securities:
+                    # Calculate the prompt
+                    prompt = company_info.get_prompt(date, security, self.system_prompt['prompt'])
+                    record = {'security': security, 'date': date, 'prompt': prompt}
+                    all_prompts.append(record)
+
+            if is_save_prompts:
+                print("Saving data...")
+                # Load all the prompts into local storage
+                with open(f'{self.project_folder}/prompts.json', 'w') as f:
+                    json.dump(all_prompts,f)
+            return all_prompts
+        else:
+            with open(f'Data/{self.run_name}/prompts.json') as f:
+                all_prompts = json.load(f)
         
-        all_prompts = []
-        # Get all the dates
-        dates = company_info.get_dates()
-        # Loop through each date
-        for date in dates:
-            # Pull out the securities reporting on that date
-            securities = company_info.get_securities_reporting_on_date(date)
-            # Loop through the securities
-            for security in securities:
-                # Calculate the prompt
-                prompt = company_info.get_prompt(date, security, self.system_prompt)
-                record = {'security': security, 'date': date, 'prompt': prompt}
-                all_prompts.append(record)
-                
-        if is_save_prompts:
-            print("Saving data...")
-            # Load all the prompts into local storage
-            with open(f'{self.project_folder}/prompts.json', 'w') as f:
-                json.dump(all_prompts,f)
-        return all_prompts
+            return all_prompts
     
     
     def run_model(self, prompt, tokenizer, model):
+        print("running model...")
         tokens = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
         model_inputs = tokenizer([tokens], return_tensors='pt').to("cuda")
-        generated_ids = model.generate(**model_inputs, pad_token_id=tokenizer.eos_token_id, max_new_tokens=5000)
+        generated_ids = model.generate(**model_inputs, pad_token_id=tokenizer.eos_token_id, max_new_tokens=500)
         parsed_ids = [
             output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
         ]
@@ -159,14 +176,11 @@ class InferenceRun():
             # Load and prep the data once
             all_prompts = self.create_all_prompts(True)
             
-            #FOR TESTING ONLY
-            all_prompts = all_prompts[:16]
-            
             count = start_count
-            max_count = len(all_prompts)
-            f = IntProgress(min=0, max=max_count) # instantiate the bar
-            l = Label(value=str(f.value))
-            display(HBox([f,l]))
+            # max_count = len(all_prompts)
+            # f = IntProgress(min=0, max=max_count) # instantiate the bar
+            # l = Label(value=str(f.value))
+            # display(HBox([f,l]))
             
                 
             print(f"Memory footprint: {model.get_memory_footprint() / 1e9:,.1f} GB")
@@ -178,28 +192,35 @@ class InferenceRun():
         with open(f'{self.project_folder}/prompts.json', 'rb') as f:
             all_prompts = json.load(f)
             
+        #FOR TESTING ONLY
+        all_prompts = all_prompts[:8]
+        
+            
         with accelerator.split_between_processes(all_prompts) as prompts:
             results = []
+            print("starting backtest...")
             
-            for prompt in prompts:
+            for prompt in tqdm(prompts):
                 response = self.run_model(prompt['prompt'], tokenizer, model)
                 formatted_response = {'date': prompt['date'], 'security': prompt['security'], 'response': response}
                 results.append(formatted_response)
             
             if accelerator.is_main_process:
                 count += 1
-                f.value += 1
-                l.value = str(count) + "/" + str(max_count)
+                # f.value += 1
+                # l.value = str(count) + "/" + str(max_count)
                 if count > 0 and count % log_at == 0:
                     results_gathered = gather_object(results)
                     self.logger.log(results_gathered, f"{self.run_name} - {datetime.datetime.now()}.json")
         
         if accelerator.is_main_process:
+            print("Finished run")
             results_gathered = gather_object(results)
-            self.logger.log(results_gathered, f"results - {self.run_name}")
+            self.save_run(results_gathered)
         
         
-
+    def test_multi(self):
+        notebook_launcher(self.run_multi_gpu(), num_processes=torch.cuda.device_count())
     
     
     def run(self):
