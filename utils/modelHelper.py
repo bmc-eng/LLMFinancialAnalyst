@@ -64,6 +64,11 @@ class ModelHelper():
     
     # re-load the model from s3
     def load_model(self, model_name, device):
+        """
+        Load the model from an S3 bucket
+        model_name: Location in S3 of the model within the subfolder
+        device:     Returns the model with either 'auto' or accelerate device for multi-gpu inference
+        """
         print(model_name)
         self._get_model(model_name)
         
@@ -72,6 +77,9 @@ class ModelHelper():
     
     
     def delete_model_in_s3(self, model_name):
+        """
+        Delete the model from the S3 bucket
+        """
         client = boto3.client("s3")
         folder = f'{self.username}/{self.s3_sub_folder}/{model_name}'
         

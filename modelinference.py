@@ -22,8 +22,6 @@ import utils.modelHelper as mh
 #from utils.modelHelper import ModelHelper
 from utils.logger import Logger
 
-from prompts import SYSTEM_PROMPTS
-
 from tqdm import tqdm
 
 
@@ -106,6 +104,10 @@ class InferenceRun():
     
     
     def save_run(self, results):
+        """
+        Save the results of the inference run at the end
+        results:     List of JSON objects from each model inference task
+        """
         self.logger.log(results, f"results - {self.run_name}")
         
         with open(f'{self.project_folder}/results - {self.run_date}.json', 'w') as f:
@@ -149,16 +151,33 @@ class InferenceRun():
     
     
     def run_model(self, prompt, tokenizer, model):
-        print("running model...")
+     
         tokens = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
         model_inputs = tokenizer([tokens], return_tensors='pt').to("cuda")
-        generated_ids = model.generate(**model_inputs, pad_token_id=tokenizer.eos_token_id, max_new_tokens=500)
+        generated_ids = model.generate(**model_inputs, pad_token_id=tokenizer.eos_token_id, max_new_tokens=2000)
         parsed_ids = [
             output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
         ]
         return tokenizer.batch_decode(parsed_ids, skip_special_tokens=True)[0]
     
-    
+    def format_json(self, llm_output):
+        # remove all the broken lines
+        form = llm_output.replace('\n','')
+        # Find the start and end of the JSON input
+        try:
+            soj = form.find('```json')
+            eoj = form.find('}```')
+            
+            if eoj == -1:
+                eoj = len(llm_output)
+            # Pull out the additional context
+            additional = form[:soj]
+            additional += form[eoj + 4:]
+            json_obj = json.load(form[soj + 7:eoj + 1])
+            json_obj['AdditionalContext'] = additional
+            return json_obj
+        except:
+            return llm_output
         
     
     def run_multi_gpu(self, log_at=50, start_count=0):
@@ -173,7 +192,7 @@ class InferenceRun():
         # Only load the data and calculate all of the prompts once
         if accelerator.is_main_process:
             
-            print("Loading Data")
+            
             # Load and prep the data once
             all_prompts = self.create_all_prompts(True)
             progress = tqdm(total=len(all_prompts[:8]), position=0, leave=True)
@@ -183,7 +202,7 @@ class InferenceRun():
                 
             print(f"Memory footprint: {model.get_memory_footprint() / 1e9:,.1f} GB")
         
-        print("waiting...")
+        
         accelerator.wait_for_everyone()
         
         # Load the data back into each GPU memory
