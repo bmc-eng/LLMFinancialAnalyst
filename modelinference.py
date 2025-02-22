@@ -75,8 +75,7 @@ class InferenceRun():
         """
         Load the model from S3 storage when the model has been pre-saved
         """
-        helper = mh.ModelHelper('tmp/fs')
-        return helper.load_model(model_location, device)
+        return self.helper.load_model(model_location, device)
         
         
     def load_model_multi_gpu(self, accelerator):
@@ -108,7 +107,8 @@ class InferenceRun():
     
     def save_run(self, results):
         self.logger.log(results, f"results - {self.run_name}")
-        with open(f'{self.project_folder}/results - {self.run_date}.json') as f:
+        
+        with open(f'{self.project_folder}/results - {self.run_date}.json', 'w') as f:
             json.dump(results, f)
         print("Run Completed!")
         
@@ -166,21 +166,19 @@ class InferenceRun():
         # load the accelerator
         accelerator = Accelerator()
         # load the model
-        model = self.load_model_multi_gpu(accelerator)
+        model = self.load_model_multi_gpu(accelerator) 
         tokenizer = AutoTokenizer.from_pretrained(self.model_hf_id)
 
         
         # Only load the data and calculate all of the prompts once
         if accelerator.is_main_process:
+            
             print("Loading Data")
             # Load and prep the data once
             all_prompts = self.create_all_prompts(True)
-            
+            progress = tqdm(total=len(all_prompts[:8]), position=0, leave=True)
             count = start_count
-            # max_count = len(all_prompts)
-            # f = IntProgress(min=0, max=max_count) # instantiate the bar
-            # l = Label(value=str(f.value))
-            # display(HBox([f,l]))
+            
             
                 
             print(f"Memory footprint: {model.get_memory_footprint() / 1e9:,.1f} GB")
@@ -195,32 +193,35 @@ class InferenceRun():
         #FOR TESTING ONLY
         all_prompts = all_prompts[:8]
         
+        # Clear the memory to free up space in local disk
+        self.helper.clear_folder(self.model_s3_loc)
             
         with accelerator.split_between_processes(all_prompts) as prompts:
             results = []
             print("starting backtest...")
             
-            for prompt in tqdm(prompts):
+            for prompt in prompts:
                 response = self.run_model(prompt['prompt'], tokenizer, model)
                 formatted_response = {'date': prompt['date'], 'security': prompt['security'], 'response': response}
                 results.append(formatted_response)
             
-            if accelerator.is_main_process:
-                count += 1
-                # f.value += 1
-                # l.value = str(count) + "/" + str(max_count)
-                if count > 0 and count % log_at == 0:
-                    results_gathered = gather_object(results)
-                    self.logger.log(results_gathered, f"{self.run_name} - {datetime.datetime.now()}.json")
+                if accelerator.is_main_process:
+
+                    # Update progress
+                    count += 1
+                    progress.update(accelerator.num_processes)
+
+                    if count > 0 and count % log_at == 0:
+                        results_gathered = gather_object(results)
+                        self.logger.log(results_gathered, f"{self.run_name} - {datetime.datetime.now()}.json")
         
+        
+        results_gathered = gather_object(results)
         if accelerator.is_main_process:
             print("Finished run")
-            results_gathered = gather_object(results)
             self.save_run(results_gathered)
         
-        
-    def test_multi(self):
-        notebook_launcher(self.run_multi_gpu(), num_processes=torch.cuda.device_count())
+
     
     
     def run(self):
