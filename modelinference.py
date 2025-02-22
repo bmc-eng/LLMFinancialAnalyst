@@ -51,6 +51,10 @@ class InferenceRun():
         self.dataset      = run_config['dataset']
         self.dataset_loc  = run_config['data_location']
         self.logger       = Logger('tmp/fs')
+        
+        self.project_folder = f'Data/{run_name}'
+        if not os.path.exists(self.project_folder):
+            os.makedirs(self.project_folder)
 
         
 
@@ -63,6 +67,7 @@ class InferenceRun():
         else:
             model = AutoModelForCausalLM.from_pretrained(model_id, device_map=device, torch_dtype=torch.bfloat16)
         return model
+    
     
     def load_model_from_storage(self, model_location, device='auto'):
         """
@@ -88,7 +93,6 @@ class InferenceRun():
         if self.model_reload:
             #Reload the model from Huggingface
             if self.model.quant != None:
-                
                 model = self.load_model_from_hf(self.model_hf_id, True)
             else:
                 model = self.load_model_from_hf(self.model_hf_id)
@@ -100,11 +104,11 @@ class InferenceRun():
         return model
     
     
-    def create_all_prompts(self):
+    def create_all_prompts(self, is_save_prompts=False):
         """
         Create all of the prompts ready for inference
         """
-        company_info = company_data.SecurityData('tmp/fs',self.dataset)
+        company_info = company_data.SecurityData('tmp/fs',self.dataset_loc)
         
         all_prompts = []
         # Get all the dates
@@ -119,7 +123,14 @@ class InferenceRun():
                 prompt = company_info.get_prompt(date, security, self.system_prompt)
                 record = {'security': security, 'date': date, 'prompt': prompt}
                 all_prompts.append(record)
+                
+        if is_save_prompts:
+            print("Saving data...")
+            # Load all the prompts into local storage
+            with open(f'{self.project_folder}/prompts.json', 'w') as f:
+                json.dump(all_prompts,f)
         return all_prompts
+    
     
     def run_model(self, prompt, tokenizer, model):
         tokens = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
@@ -146,7 +157,7 @@ class InferenceRun():
         if accelerator.is_main_process:
             print("Loading Data")
             # Load and prep the data once
-            all_prompts = self.create_all_prompts()
+            all_prompts = self.create_all_prompts(True)
             
             #FOR TESTING ONLY
             all_prompts = all_prompts[:16]
@@ -157,10 +168,6 @@ class InferenceRun():
             l = Label(value=str(f.value))
             display(HBox([f,l]))
             
-            print("Saving data...")
-            # Load all the prompts into local storage
-            with open(f'Data/{self.run_name}/prompts.json', 'w') as f:
-                json.dump(all_prompts,f)
                 
             print(f"Memory footprint: {model.get_memory_footprint() / 1e9:,.1f} GB")
         
@@ -168,14 +175,14 @@ class InferenceRun():
         accelerator.wait_for_everyone()
         
         # Load the data back into each GPU memory
-        with open(f'Data/{self.run_name}/prompts.json', 'rb') as f:
+        with open(f'{self.project_folder}/prompts.json', 'rb') as f:
             all_prompts = json.load(f)
             
         with accelerator.split_between_processes(all_prompts) as prompts:
             results = []
             
             for prompt in prompts:
-                response = self.run_model(prompt[prompt], tokenizer, model)
+                response = self.run_model(prompt['prompt'], tokenizer, model)
                 formatted_response = {'date': prompt['date'], 'security': prompt['security'], 'response': response}
                 results.append(formatted_response)
             
