@@ -182,6 +182,7 @@ class InferenceRun():
     
     def run_multi_gpu(self, log_at=50, start_count=0):
         
+        
         # load the accelerator
         accelerator = Accelerator()
         # load the model
@@ -192,7 +193,7 @@ class InferenceRun():
         # Only load the data and calculate all of the prompts once
         if accelerator.is_main_process:
             
-            
+            start_time = datetime.datetime.now()
             # Load and prep the data once
             all_prompts = self.create_all_prompts(True)
             progress = tqdm(total=len(all_prompts[:8]), position=0, leave=True)
@@ -221,7 +222,7 @@ class InferenceRun():
             
             for prompt in prompts:
                 response = self.run_model(prompt['prompt'], tokenizer, model)
-                formatted_response = {'date': prompt['date'], 'security': prompt['security'], 'response': response}
+                formatted_response = {'date': prompt['date'], 'security': prompt['security'], 'response': self.format_json(response)}
                 results.append(formatted_response)
             
                 if accelerator.is_main_process:
@@ -237,7 +238,8 @@ class InferenceRun():
         
         results_gathered = gather_object(results)
         if accelerator.is_main_process:
-            print("Finished run")
+            end_time = datetime.datetime.now()
+            print(f"Finished run in {end_time - start_time}")
             self.save_run(results_gathered)
         
 
