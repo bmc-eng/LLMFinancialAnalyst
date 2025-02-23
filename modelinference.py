@@ -108,7 +108,8 @@ class InferenceRun():
         Save the results of the inference run at the end
         results:     List of JSON objects from each model inference task
         """
-        self.logger.log(results, f"results - {self.run_name}")
+        print("Called Save run")
+        self.logger.log(results, f"Results_{self.run_name}.json")
         
         with open(f'{self.project_folder}/results - {self.run_date}.json', 'w') as f:
             json.dump(results, f)
@@ -121,6 +122,7 @@ class InferenceRun():
         Create all of the prompts ready for inference
         """
         if not os.path.exists(f'Data/{self.run_name}/prompts.json'):
+            print("Requesting all datasets...")
             company_info = company_data.SecurityData('tmp/fs',self.dataset_loc)
 
             all_prompts = []
@@ -180,7 +182,7 @@ class InferenceRun():
             return llm_output
         
     
-    def run_multi_gpu(self, log_at=50, start_count=0):
+    def run_multi_gpu(self, log_at=1, start_count=0):
         
         
         # load the accelerator
@@ -198,12 +200,10 @@ class InferenceRun():
             all_prompts = self.create_all_prompts(True)
             progress = tqdm(total=len(all_prompts[:8]), position=0, leave=True)
             count = start_count
-            
-            
-                
+              
             print(f"Memory footprint: {model.get_memory_footprint() / 1e9:,.1f} GB")
         
-        
+        print("Waiting...")
         accelerator.wait_for_everyone()
         
         # Load the data back into each GPU memory
@@ -231,16 +231,23 @@ class InferenceRun():
                     count += 1
                     progress.update(accelerator.num_processes)
 
-                    if count > 0 and count % log_at == 0:
-                        results_gathered = gather_object(results)
-                        self.logger.log(results_gathered, f"{self.run_name} - {datetime.datetime.now()}.json")
+                    # if count > 0 and count % log_at == 0:
+                    #     #results_gathered = gather_object(results)
+                    #     print("gathered results")
+                    #     self.logger.log(results_gathered, f"{self.run_name} - {datetime.datetime.now()}.json")
+        
         
         
         results_gathered = gather_object(results)
+        accelerator.wait_for_everyone()
+        print("Gathered results...")
+        
         if accelerator.is_main_process:
             end_time = datetime.datetime.now()
             print(f"Finished run in {end_time - start_time}")
             self.save_run(results_gathered)
+            
+        accelerator.wait_for_everyone()
         
 
     

@@ -21,14 +21,16 @@ class Logger:
         
     def _write(self, data, filepath):
         
-        with self.s3.open(filepath, 'w') as file:
-            json.dump(data, file)
+        result = self.client.put_object(Body=json.dumps(data), Key=filepath, Bucket=self.bucket)
+        # with self.s3.open(filepath, 'w') as file:
+        #     json.dump(data, file)
             
         print("Saved " + filepath)
     
     def log(self, data, filename):
-        
-        path_to_s3 = f's3://{self.bucket}/{self.username}/{self.s3_sub_folder}/logs/{filename}'
+        print("called log")
+        #path_to_s3 = f's3://{self.bucket}/{self.username}/{self.s3_sub_folder}/logs/{filename}'
+        path_to_s3 = f"{self.username}/{self.s3_sub_folder}/logs/{filename}"
         self._write(data, path_to_s3)
         
         
@@ -45,6 +47,7 @@ class Logger:
         return files
     
     def get_log(self, logname):
+        
         path_to_file = f's3://{self.bucket}/{self.username}/{self.s3_sub_folder}/logs/{logname}'
         
         with self.s3.open(path_to_file, 'rb') as file:
@@ -60,7 +63,8 @@ class Logger:
             logs += self.get_log(logfile[logfile.find('/logs/') + 6:])
             
         if save_to_s3:
-            path_to_s3 = f's3://{self.bucket}/{self.username}/{self.s3_sub_folder}/{filename}'
+            #path_to_s3 = f's3://{self.bucket}/{self.username}/{self.s3_sub_folder}/{filename}'
+            path_to_s3 = f"{self.username}/{self.s3_sub_folder}/logs/{filename}"
             data = {'content': logs}
             self._write(data, path_to_s3)
             
