@@ -109,10 +109,11 @@ class InferenceRun():
         results:     List of JSON objects from each model inference task
         """
         print("Called Save run")
-        self.logger.log(results, f"Results_{self.run_name}.json")
         
         with open(f'{self.project_folder}/results - {self.run_date}.json', 'w') as f:
             json.dump(results, f)
+            
+        self.logger.log(results, f"Results_{self.run_date}.json")
         print("Run Completed!")
         
     
@@ -172,10 +173,11 @@ class InferenceRun():
             
             if eoj == -1:
                 eoj = len(llm_output)
+                llm_output = llm_output + '}```'
             # Pull out the additional context
             additional = form[:soj]
             additional += form[eoj + 4:]
-            json_obj = json.load(form[soj + 7:eoj + 1])
+            json_obj = json.loads(form[soj + 7:eoj + 1])
             json_obj['AdditionalContext'] = additional
             return json_obj
         except:
@@ -245,7 +247,8 @@ class InferenceRun():
         if accelerator.is_main_process:
             end_time = datetime.datetime.now()
             print(f"Finished run in {end_time - start_time}")
-            self.save_run(results_gathered)
+            end_result = {'run_date': str(self.run_date), 'system_prompt': self.system_prompt, 'dataset': self.dataset, 'model': self.model_hf_id, 'results': results_gathered}
+            self.save_run(end_result)
             
         accelerator.wait_for_everyone()
         

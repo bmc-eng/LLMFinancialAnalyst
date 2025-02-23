@@ -22,8 +22,6 @@ class Logger:
     def _write(self, data, filepath):
         
         result = self.client.put_object(Body=json.dumps(data), Key=filepath, Bucket=self.bucket)
-        # with self.s3.open(filepath, 'w') as file:
-        #     json.dump(data, file)
             
         print("Saved " + filepath)
     
