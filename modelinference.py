@@ -213,7 +213,7 @@ class InferenceRun():
             all_prompts = json.load(f)
             
         #FOR TESTING ONLY
-        all_prompts = all_prompts[:8]
+        #all_prompts = all_prompts[:8]
         
         # Clear the memory to free up space in local disk
         self.helper.clear_folder(self.model_s3_loc)
@@ -247,7 +247,7 @@ class InferenceRun():
         if accelerator.is_main_process:
             end_time = datetime.datetime.now()
             print(f"Finished run in {end_time - start_time}")
-            end_result = {'run_date': str(self.run_date), 'system_prompt': self.system_prompt, 'dataset': self.dataset, 'model': self.model_hf_id, 'results': results_gathered}
+            end_result = {'run_date': str(self.run_date), 'system_prompt': self.system_prompt['prompt'], 'dataset': self.dataset, 'model': self.model_hf_id, 'results': results_gathered}
             self.save_run(end_result)
             
         accelerator.wait_for_everyone()
