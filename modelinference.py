@@ -15,7 +15,6 @@ from IPython.display import Markdown, display
 from ipywidgets import IntProgress, Label, HBox
 
 #from helper import get_s3_folder
-
 import company_data
 import prompts
 import utils.modelHelper as mh
@@ -253,6 +252,45 @@ class InferenceRun():
         accelerator.wait_for_everyone()
         
 
+    def run_single():
+        
+        # load the model
+        model = self.load_model_single() 
+        tokenizer = AutoTokenizer.from_pretrained(self.model_hf_id)
+
+        # Start the timer      
+        start_time = datetime.datetime.now()
+        
+        # Load and prep the data once
+        all_prompts = self.create_all_prompts(True)
+        
+        # test run
+        all_prompts = all_prompts[:4]
+        progress = tqdm(total=len(all_prompts), position=0, leave=True)
+        count = start_count
+              
+        print(f"Memory footprint: {model.get_memory_footprint() / 1e9:,.1f} GB")
+        
+        # Clear the memory to free up space in local disk
+        self.helper.clear_folder(self.model_s3_loc)
+            
+        
+        results = []
+        print("starting backtest...")
+            
+        for prompt in all_prompts:
+            response = self.run_model(prompt['prompt'], tokenizer, model)
+            formatted_response = {'date': prompt['date'], 'security': prompt['security'], 'response': self.format_json(response)}
+            results.append(formatted_response)
+
+            # Update progress
+            count += 1
+            progress.update(accelerator.num_processes)
+        
+        end_time = datetime.datetime.now()
+        print(f"Finished run in {end_time - start_time}")
+        end_result = {'run_date': str(self.run_date), 'system_prompt': self.system_prompt['prompt'], 'dataset': self.dataset, 'model': self.model_hf_id, 'results': results_gathered}
+        self.save_run(end_result)
     
     
     def run(self):
