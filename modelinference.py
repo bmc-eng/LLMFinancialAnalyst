@@ -200,7 +200,7 @@ class InferenceRun():
             start_time = datetime.datetime.now()
             # Load and prep the data once
             all_prompts = self.create_all_prompts(True)
-            progress = tqdm(total=len(all_prompts[:8]), position=0, leave=True)
+            progress = tqdm(total=len(all_prompts), position=0, leave=True)
             count = start_count
               
             print(f"Memory footprint: {model.get_memory_footprint() / 1e9:,.1f} GB")
@@ -261,7 +261,7 @@ class InferenceRun():
         This will run in either single model mode or multi-gpu mode
         
         """
-        start_time = datetime.datetime.now()
+        
         
         if self.multi_gpu:
             self.run_multi_gpu()
@@ -270,23 +270,3 @@ class InferenceRun():
             print(f"Memory footprint: {model.get_memory_footprint() / 1e9:,.1f} GB")
         
         tokenizer = AutoTokenizer.from_pretrained(model_id)
-
-        
-
-        
-
-        # set up system prompts
-        all_prompts = create_all_prompts(company_data, system_prompt)
-
-        # batch into groups of 8
-        #batches = [all_prompts[i:i + 8] for i in range(0, len(all_prompts), 8)]  
-
-        accelerator.wait_for_everyone()
-        # Limit for testing
-        #prompt_limit = all_prompts[:5]
-
-    
-        #for batch in batches:
-            #run the backtest
-        run_backtest(all_prompts, tokenizer, model, self.logger, accelerator)
-    
