@@ -34,17 +34,17 @@ class InferenceRun():
     """
     
     def __init__(self, run_name, run_config):
-        self.run_name = run_name # Description of the model run
-        self.run_date = datetime.datetime.now()
-        self.helper = mh.ModelHelper('tmp/fs')
+        self.run_name: str = run_name # Description of the model run
+        self.run_date: str = datetime.datetime.now()
+        self.helper: mh.ModelHelper = mh.ModelHelper('tmp/fs')
         
         # model parameters
-        self.model_hf_id  = run_config['model_hf_id']   # Model id for tokenizer :str
-        self.model_s3_loc  = run_config['model_s3_loc']   # Load the model from cloud storage :str
-        self.model_reload = run_config['model_reload']  # Reload the model from huggingface: bool
-        self.model_quant  = run_config['model_quant']   # QuantConfig object from bitsandbytes :QuantConfig
-        self.system_prompt= run_config['system_prompt'] # System prompt for inference
-        self.multi_gpu    = run_config['multi-gpu']     # Single thread or multi-gpu
+        self.model_hf_id: str                 = run_config['model_hf_id']   # Model id for tokenizer :str
+        self.model_s3_loc: str                = run_config['model_s3_loc']   # Load the model from cloud storage :str
+        self.model_reload: bool               = run_config['model_reload']  # Reload the model from huggingface: bool
+        self.model_quant: BitsAndBytesConfig  = run_config['model_quant']   # QuantConfig object from bitsandbytes :QuantConfig
+        self.system_prompt: str               = run_config['system_prompt'] # System prompt for inference
+        self.multi_gpu: bool.                 = run_config['multi-gpu']     # Single thread or multi-gpu
         
         # data parameters
         self.dataset      = run_config['dataset']
@@ -86,7 +86,9 @@ class InferenceRun():
     
     
     def load_model_single(self):
-        
+        """
+        Load the model into a single GPU
+        """
         # check if requesting model reload
         if self.model_reload:
             #Reload the model from Huggingface
@@ -153,7 +155,13 @@ class InferenceRun():
     
     
     def run_model(self, prompt, tokenizer, model):
-     
+         """
+         Perform a single inference run with a prompt, tokenizer and model
+         prompt:       string of the prompt to run through the model
+         tokenizer:    the tokenizer to encode and decode tokens into the model
+         model:        huggingface model
+         returns       string decoded inference output of the model
+         """
         tokens = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
         model_inputs = tokenizer([tokens], return_tensors='pt').to("cuda")
         generated_ids = model.generate(**model_inputs, pad_token_id=tokenizer.eos_token_id, max_new_tokens=2000)
@@ -252,7 +260,7 @@ class InferenceRun():
         accelerator.wait_for_everyone()
         
 
-    def run_single():
+    def run_single(self,log_at=1, start_count=0):
         
         # load the model
         model = self.load_model_single() 
@@ -285,7 +293,7 @@ class InferenceRun():
 
             # Update progress
             count += 1
-            progress.update(accelerator.num_processes)
+            progress.update(count)
         
         end_time = datetime.datetime.now()
         print(f"Finished run in {end_time - start_time}")
