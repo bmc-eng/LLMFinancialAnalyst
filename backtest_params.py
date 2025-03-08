@@ -9,7 +9,7 @@ from bloomberg.bquant.signal_lab.workflow.factory import (
 
 from bloomberg.bquant.signal_lab.workflow import AnalyticsDataConfig
 
-def get_universe_params(start, end, universe_name, data_pack_path):
+def get_universe_params(start: str, end: str, universe_name: str, data_pack_path: str) -> tuple[UniverseFactory, DataItemFactory, DataItemFactory]:
     # Create universe and benchmark using factory
     universe = UniverseFactory.from_data_pack(
         universe_name=universe_name, 
@@ -28,9 +28,17 @@ def get_universe_params(start, end, universe_name, data_pack_path):
         end=end,
     )
     
-    return universe, benchmark
+    trading_calendar = DataItemFactory.from_data_pack(
+        data_pack_path=data_pack_path,
+        data_item_id='trading_calendar',
+        universe_name=universe_name,
+        start=start,
+        end=end,
+    )
+    
+    return universe, benchmark, trading_calendar
 
-def get_analytics_data_config(start, end, universe_name, data_pack_path):
+def get_analytics_data_config(start: str, end: str, universe_name: str, data_pack_path: str) -> AnalyticsDataConfig:
     # bics mapping data
     bics_level_1 = DataItemFactory.from_data_pack(
         data_item_id="bics_level_1",
@@ -111,7 +119,7 @@ def get_analytics_data_config(start, end, universe_name, data_pack_path):
     )
 
 
-def get_return_params(start, end, data_pack_path):
+def get_return_params(start: str, end: str, data_pack_path: str) -> tuple[DataItemFactory, DataItemFactory, DataItemFactory]:
     price = DataItemFactory.from_data_pack(
         data_pack_path=data_pack_path,
         data_item_id="px_last",
@@ -121,7 +129,13 @@ def get_return_params(start, end, data_pack_path):
         label="price",
     )
     
-    
+    total_returns = DataItemFactory.from_data_pack(
+        data_item_id="day_to_day_tot_return_gross_dvds",
+        data_pack_path=data_pack_path, 
+        date_column="DATE", 
+        start=start, 
+        end=end
+    )
     
     cur_mkt_cap = DataItemFactory.from_data_pack(
         data_item_id="cur_mkt_cap",
@@ -131,6 +145,6 @@ def get_return_params(start, end, data_pack_path):
         end=end
     )
 
-    return price, cur_mkt_cap
+    return price, cur_mkt_cap, total_returns
 
     
