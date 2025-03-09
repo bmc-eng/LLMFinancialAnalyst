@@ -4,16 +4,14 @@ from bloomberg.bquant.signal_lab.workflow.node import (
     industry_grouping, portfolio_construction)
 from bloomberg.bquant.signal_lab.signal.transformers import WeightingScheme
 from bloomberg.bquant.signal_lab.workflow.factory import (
-    UniverseFactory,
-    DataItemFactory,
-    SignalFactory,
+    UniverseFactory, DataItemFactory,SignalFactory,
 )
 from bloomberg.bquant.signal_lab.workflow import (
     AnalyticsDataConfig,
     build_backtest,
 )
 
-from bloomberg.bquant.signal_lab.workflow.utils import get_sandbox_path
+#from bloomberg.bquant.signal_lab.workflow.utils import get_sandbox_path
 from bloomberg.bquant.signal_lab.workflow.workflow_orchestrator import _WorkflowResults
 
 import utils.event_backtest_helper as ebh
@@ -82,17 +80,22 @@ def build_port_weights(signal: pd.DataFrame, events_df: pd.DataFrame) -> pd.Data
     # STEP 5: return the long and short portfolios
     return long_short_portfolio
 
+
 def signal_fn(signal: DataItemFactory) -> DataItemFactory:
-        return signal
+    """Function to return the dummy data signal during the backtest. """
+    return signal
+
 
 class EventBacktest:
 
+    
     def __init__(self, start: str, end: str, universe_name: str, data_pack_path: str):
         """ Initialise the Backtester with time period and universe"""
         self.start: str         = start
         self.end: str           = end
         self.universe_name: str = universe_name
         self.bq: bql.Service    = bql.Service()
+        self.bt_results: _WorkflowResults = None
 
         # Load the datasets from the datapacks
         self.universe, self.benchmark, self.trading_calendar = get_universe_params(
@@ -104,13 +107,17 @@ class EventBacktest:
         self.analytics_data_config = get_analytics_data_config(
             self.start, self.end, self.universe_name, data_pack_path
         )
+        
+        # Set up the pricing signal
         self.price.bind_universe(self.universe)
         self.price_df = self.price.df()
 
+        self.benchmark_id = f"IndexWeights['{self.universe_name}']"
 
-    def _bql_execute_single(self, univ: list[str], field: dict[str, bql.om.bql_item.BqlItem]) -> pd.DataFrame:
+
+    def _bql_execute_single(self, univ: list[str], 
+                            field: dict[str, bql.om.bql_item.BqlItem]) -> pd.DataFrame:
         """Execute a BQL query with a universe and one field"""
-        
         req = bql.Request(univ, field)
         data = self.bq.execute(req)
         return data[0].df()
@@ -118,7 +125,6 @@ class EventBacktest:
 
     def _convert_to_figi(self, df: pd.DataFrame) -> pd.DataFrame:
         """Function to convert Bloomberg tickers in a dataframe to FIGIs for ESL"""
-        
         univ      = df['Security'].to_list()
         field     = {'figi': self.bq.data.composite_id_bb_global()}
         figi      = self._bql_execute_single(univ, field)
@@ -191,4 +197,59 @@ class EventBacktest:
         )
             
         # STEP 5: Run and return the results
-        return backtest.evaluate_graph()
+        self.bt_results = backtest.evaluate_graph()
+        return self.bt_results
+
+    
+    def get_return_data(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Return the cumulative return datasets for the strategy and the benchmark
+        Output: df_strategy_return, df_benchmark_return time-series """
+        if self.bt_results == None:
+            raise Exception("Backtest object is missing! Please call run() first to run the backtest")
+        else:
+            # Return time series
+            df_strategy_return = self.bt_results.analytics["CumulativeReturn"].read()['gross']['COMBINED'].read()
+            # Benchmark Return
+            df_benchmark_return = self.bt_results.analytics["CumulativeReturn"].read()['benchmark'][self.benchmark_id].read()
+            return df_strategy_return, df_benchmark_return
+
+    
+    def get_performance_data(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Return the YoY performance data for the benchmark and the strategy"""
+        if self.bt_results == None:
+            raise Exception("Backtest object is missing! Please call run() first to run the backtest")
+        else:
+            # Strategy YoY Performance
+            df_strategy_performance = self.bt_results.analytics['PerformanceStatisticsByYear'].read()['gross']['COMBINED'].read()
+            # Benchmark YoY Performance
+            df_benchmark_performance = self.bt_results.analytics['PerformanceStatisticsByYear'].read()['benchmark'][self.benchmark.id].read()
+            return df_strategy_performance, df_benchmark_performance
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+
+    
