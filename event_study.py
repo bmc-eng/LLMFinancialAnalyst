@@ -14,17 +14,79 @@ from bloomberg.bquant.signal_lab.workflow import (
 )
 
 from bloomberg.bquant.signal_lab.workflow.utils import get_sandbox_path
+from bloomberg.bquant.signal_lab.workflow.workflow_orchestrator import _WorkflowResults
 
 import utils.event_backtest_helper as ebh
-import backtest_params as bp
+from backtest_params import get_universe_params, get_return_params, get_analytics_data_config
 
 import numpy as np
 import pandas as pd
 
 
+def build_port_weights(signal: pd.DataFrame, events_df: pd.DataFrame) -> pd.DataFrame:
+    """Function to convert a dataframe of signals into a portfolio by adjusting the weights
+    signal: DataFrame of a pricing signal to use as the base
+    events_df: DataFrame with Date, Security, Decision (BUY/ SELL/ HOLD) and Confidence Columns
+    OUTPUT: Dataframe of the weights of a long/ short portfolio
+    """
+    long_portfolio =  signal.copy(deep=True)
+    short_portfolio = signal.copy(deep=True)
+    
+    long_portfolio.loc[:,:] = False
+    short_portfolio.loc[:,:] = False
+    signal.loc[:,:] = 1
+    
+    # STEP 1 get the list of securities in th df_events database
+    unique_securities = list(events_df['Security'].unique())
+    
+    # STEP 2: iterate over the list of securities to look at the individual trades
+    for security in unique_securities:
+        try:
+            security_trades = events_df[events_df['Security'] == security]
+        
+            # STEP 3: iterate over the trades and update the long/ short portfolio depending on trade direction
+            for row in security_trades.itertuples():
+                if row.Decision == 'BUY':
+                    long_portfolio[security].loc[row.Date:] = True
+                    short_portfolio[security].loc[row.Date:] = False
+                if row.Decision == 'SELL':
+                    long_portfolio[security].loc[row.Date:] = False
+                    short_portfolio[security].loc[row.Date:] = True
+                if row.Decision == 'HOLD':
+                    continue
+                if row.Decision == 'Missing':
+                    continue
+        except KeyError:
+            print(f"Missing: {security}")
+    
+    # STEP 4: create an equal weighted long and short leg
+    long_portfolio_leg = ebh.leg_portfolio(
+        signal=signal,
+        weighting_scheme=WeightingScheme.EQUAL,
+        assets_filter=long_portfolio,
+        long_leg=True
+    )
+    
+    short_portfolio_leg = ebh.leg_portfolio(
+        signal=signal,
+        weighting_scheme=WeightingScheme.EQUAL,
+        assets_filter=short_portfolio,
+        long_leg=False
+    )
+    
+    long_short_portfolio = long_portfolio_leg.add(
+        short_portfolio_leg,
+        fill_value=0.0,
+    )
+    
+    # STEP 5: return the long and short portfolios
+    return long_short_portfolio
+
+def signal_fn(signal: DataItemFactory) -> DataItemFactory:
+        return signal
+
 class EventBacktest:
 
-    
     def __init__(self, start: str, end: str, universe_name: str, data_pack_path: str):
         """ Initialise the Backtester with time period and universe"""
         self.start: str         = start
@@ -33,13 +95,13 @@ class EventBacktest:
         self.bq: bql.Service    = bql.Service()
 
         # Load the datasets from the datapacks
-        self.universe, self.benchmark, self.trading_calendar = bp.get_universe_params(
+        self.universe, self.benchmark, self.trading_calendar = get_universe_params(
             self.start, self.end, self.universe_name, data_pack_path
         )
-        self.price, self.cur_mkt_cap, self.total_return = bp.get_return_params(
+        self.price, self.cur_mkt_cap, self.total_return = get_return_params(
             self.start, self.end, data_pack_path
         )
-        self.analytics_data_config = bq.get_analytics_data_config(
+        self.analytics_data_config = get_analytics_data_config(
             self.start, self.end, self.universe_name, data_pack_path
         )
 
@@ -57,84 +119,24 @@ class EventBacktest:
         
         univ      = df['Security'].to_list()
         field     = {'figi': self.bq.data.composite_id_bb_global()}
-        figi      = _bql_execute_single(univ, field)
+        figi      = self._bql_execute_single(univ, field)
         merged_df = df.merge(figi, left_on='Security', right_index=True).sort_index()
         return merged_df[['Date', 'figi', 'Decision', 'Confidence']].rename(columns={'figi':'Security'}) 
 
     
-    def _build_port_weights(self, signal: pd.DataFrame, events_df: pd.DataFrame) -> pd.DataFrame:
-        """Function to convert a dataframe of signals into a portfolio by adjusting the weights
-        signal: DataFrame of a pricing signal to use as the base
-        events_df: DataFrame with Date, Security, Decision (BUY/ SELL/ HOLD) and Confidence Columns
-        OUTPUT: Dataframe of the weights of a long/ short portfolio
+    def run(self, events_df: pd.DataFrame, run_name: str) -> _WorkflowResults:
+        """Execute an Events backtest using a dataframe of trade events
+        events_df: Dataframe of trades with Date, Security, Trade direction (BUY/ SELL/ HOLD) and Confidence score
+        run_name: Name for the backtest
         """
-        long_portfolio =  signal.copy(deep=True)
-        short_portfolio = signal.copy(deep=True)
-        
-        long_portfolio.loc[:,:] = False
-        short_portfolio.loc[:,:] = False
-        signal.loc[:,:] = 1
-        
-        # STEP 1 get the list of securities in th df_events database
-        unique_securities = list(events_df['Security'].unique())
-        
-        # STEP 2: iterate over the list of securities to look at the individual trades
-        for security in unique_securities:
-            try:
-                security_trades = events_df[events_df['Security'] == security]
-            
-                # STEP 3: iterate over the trades and update the long/ short portfolio depending on trade direction
-                for row in security_trades.itertuples():
-                    if row.Decision == 'BUY':
-                        long_portfolio[security].loc[row.Date:] = True
-                        short_portfolio[security].loc[row.Date:] = False
-                    if row.Decision == 'SELL':
-                        long_portfolio[security].loc[row.Date:] = False
-                        short_portfolio[security].loc[row.Date:] = True
-                    if row.Decision == 'HOLD':
-                        continue
-                    if row.Decision == 'Missing':
-                        continue
-            except KeyError:
-                print(f"Missing: {security}")
-        
-        # STEP 4: create an equal weighted long and short leg
-        long_portfolio_leg = ebh.leg_portfolio(
-            signal=signal,
-            weighting_scheme=WeightingScheme.EQUAL,
-            assets_filter=long_portfolio,
-            long_leg=True
-        )
-        
-        short_portfolio_leg = ebh.leg_portfolio(
-            signal=signal,
-            weighting_scheme=WeightingScheme.EQUAL,
-            assets_filter=short_portfolio,
-            long_leg=False
-        )
-        
-        long_short_portfolio = long_portfolio_leg.add(
-            short_portfolio_leg,
-            fill_value=0.0,
-        )
-        
-        # STEP 5: return the long and short portfolios
-        return long_short_portfolio
-
-
-    def _signal_fn(self, signal: DataItemFactory) -> DataItemFactory:
-        return signal
-
-    
-    def run(self, events_df: pd.DataFrame, run_name: str) -> bloomberg.bquant.signal_lab.workflow.workflow_orchestrator._WorkflowResults:
         # STEP 1: Convert the events_df securities into FIGI
         events_figi_df = self._convert_to_figi(events_df)
 
         # STEP 2: Create the pricing signal used as dummy input into ESL
-        self.total_return.bind_universe(self.universe)
-        tr_df = self.total_return.df()
+        self.price.bind_universe(self.universe)
+        price_df = self.price.df()
         signal = SignalFactory.from_user(
-            user_func=self._signal_fn,
+            user_func=signal_fn,
             start=self.start,
             end= self.end,
             label=run_name,
@@ -142,8 +144,9 @@ class EventBacktest:
         )
         
         # STEP 3: Construct the portfolio weighting scheme
+        trading_dates = list(events_df['Date'].unique())
         port_long_short = portfolio_construction.from_user(
-            compute_weights_fn=self._build_port_weights,
+            compute_weights_fn= build_port_weights,
             total_returns=self.total_return,
             trading_calendar=self.trading_calendar,
             implementation_lag=1,
