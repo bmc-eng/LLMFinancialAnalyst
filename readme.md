@@ -8,7 +8,6 @@ Dissertation project for Computer Science MSc. This project will investigate the
 4. Creation of an agentic model that takes into account news and industry reports (also fine tune an open source model for financial statement analysis)
 
 
-
 ## Build Steps
 The deliverables for this project are:
 
@@ -16,12 +15,13 @@ The deliverables for this project are:
     - 01A - PIT datasets -> This is used to get all of the point-in-time financial data
     - 01B - DataPacks -> This is used to get datasets needed to run the strategy backtester
     - 03A - Multi-GPU -> This generates the strategies from the open source LLMs
-    - 
+
 - Python utilities of helper functions to:
     - Log outputs of the models
     - Retrieve models from S3 storage
     - Request data from Bloomberg for financial statements
     - Construction of portfolio legs
+
 - Key model files:
     - event_study.py -> This is the Event Backtester to test the financial outcome of a strategy
     - modelinference.py -> This is a multi-gpu inference model for generating a strategy
@@ -48,14 +48,18 @@ V1 is complete, gets the data and pivots into a format that can be converted int
 ## Model Development Notes
 
 #### 9th Mar - Built the EventBacktester
-Have completed the EventBacktest class to help with evaluating each of the strategies. This backtester takes a list of trades and constructs a portfolio based on the trade (long/ short). The 
+Have completed the EventBacktest class to help with evaluating each of the strategies. This backtester takes a list of trades and constructs a portfolio based on the trade (long/ short). It does this by modifying the portfolio weights and ignoring the signals that are usually used in the Signal Lab backtester. The EventBacktester is a wrapper that sits on top of Bloomberg Signal Lab. 
 
-#### Hitting out of memory issues with inference tasks
-Refactoring of codebase to allow for multi-GPU inference
+Tested the base test case of consensus recommendations and also the first run of the Llama model. This can now be used to test enhancements to the model.
 
+#### 24th Feb - Additional runs of the model with Multi-GPU
+Including running both zero shot and chain of thought prompting with Llama, Qwen and Deepseek.
+
+#### 21st Feb - Refactored the Model inference code for Multi-GPU
+Refactoring of codebase to allow for multi-GPU inference and wrapped in a class. Created a inference object to record the dataset, open source model used and the system prompt so that comparisons can be made in a few weeks time once the event backtester is completed. Have run 4 sets of results which are now much faster thanks to using 4 GPU cores. 
 
 #### 14th Feb - Three runs of the model to date
-Issue with the larger models. Running into out of memory issues and also losing track of the model run results.
+Issue with the larger models. Running into out of memory issues and also losing track of the model run results. This is due to the model only running on one GPU rather than the up to 4 GPUs that have access to in Bloomberg Lab. Will need to do some investigation to see how easy this will be to run multi-GPU inference.
 
 #### 4th Feb - Explored vllm and tensor_parallel
 Changed the logic for generating the prompt to reduce the token size of the prompt. It is now 4,257 vs 5,165 before reduction. 
