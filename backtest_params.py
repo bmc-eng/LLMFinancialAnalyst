@@ -10,6 +10,7 @@ from bloomberg.bquant.signal_lab.workflow.factory import (
 from bloomberg.bquant.signal_lab.workflow import AnalyticsDataConfig
 
 def get_universe_params(start: str, end: str, universe_name: str, data_pack_path: str) -> tuple[UniverseFactory, DataItemFactory, DataItemFactory]:
+    """Function to return the universe, benchmark and trading calendar information from DataPack"""
     # Create universe and benchmark using factory
     universe = UniverseFactory.from_data_pack(
         universe_name=universe_name, 
@@ -39,6 +40,7 @@ def get_universe_params(start: str, end: str, universe_name: str, data_pack_path
     return universe, benchmark, trading_calendar
 
 def get_analytics_data_config(start: str, end: str, universe_name: str, data_pack_path: str) -> AnalyticsDataConfig:
+    """Function to create the AnalyticsDataConfig object needed for the performance analytics in the backtest"""
     # bics mapping data
     bics_level_1 = DataItemFactory.from_data_pack(
         data_item_id="bics_level_1",
@@ -120,6 +122,7 @@ def get_analytics_data_config(start: str, end: str, universe_name: str, data_pac
 
 
 def get_return_params(start: str, end: str, data_pack_path: str) -> tuple[DataItemFactory, DataItemFactory, DataItemFactory]:
+    """Function to return the returns/ performance datasets needed for calculating returns of the strategy"""
     price = DataItemFactory.from_data_pack(
         data_pack_path=data_pack_path,
         data_item_id="px_last",
@@ -146,5 +149,16 @@ def get_return_params(start: str, end: str, data_pack_path: str) -> tuple[DataIt
     )
 
     return price, cur_mkt_cap, total_returns
+
+def get_analyst_params(start: str, end: str, data_pack_path: str) -> tuple[DataItemFactory, DataItemFactory]:
+    """Function to return the analyst recommendations needed to construct the base strategy"""
+    analyst_ratings = DataItemFactory.from_data_pack(
+        data_item_id='analyst_rating',
+        data_pack_path=data_pack_path, 
+        date_column="DATE", 
+        start=start, 
+        end=end
+    )
+    return analyst_ratings
 
     

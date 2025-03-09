@@ -129,7 +129,7 @@ class EventBacktest:
         field     = {'figi': self.bq.data.composite_id_bb_global()}
         figi      = self._bql_execute_single(univ, field)
         merged_df = df.merge(figi, left_on='Security', right_index=True).sort_index()
-        return merged_df[['Date', 'figi', 'Decision', 'Confidence']].rename(columns={'figi':'Security'}) 
+        return merged_df[['Date', 'figi', 'Decision']].rename(columns={'figi':'Security'}) 
 
     
     def run(self, events_df: pd.DataFrame, 
