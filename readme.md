@@ -1,8 +1,31 @@
 # LLM Financial Analyst
 
-Dissertation project for Computer Science MSc. This project will investigate the use of LLMs for financial analysis of equities on the SPX, Dow Jones and FTSE 100 companies.
+Dissertation project for Computer Science MSc. This project will investigate the use of LLMs for financial analysis of equities on the Dow Jones and FTSE 100 companies. 
+
+1. Inference via Open Source and Frontier Models (via AWS Bedrock) for financial statement analysis
+2. Construction of an events backtester built on top of Bloomberg Signal Lab libraries
+3. Comparison of models to the base
+4. Creation of an agentic model that takes into account news and industry reports (also fine tune an open source model for financial statement analysis)
+
+
 
 ## Build Steps
+The deliverables for this project are:
+
+- A series of Jupyter Notebooks highlighting the research and build steps:
+    - 01A - PIT datasets -> This is used to get all of the point-in-time financial data
+    - 01B - DataPacks -> This is used to get datasets needed to run the strategy backtester
+    - 03A - Multi-GPU -> This generates the strategies from the open source LLMs
+    - 
+- Python utilities of helper functions to:
+    - Log outputs of the models
+    - Retrieve models from S3 storage
+    - Request data from Bloomberg for financial statements
+    - Construction of portfolio legs
+- Key model files:
+    - event_study.py -> This is the Event Backtester to test the financial outcome of a strategy
+    - modelinference.py -> This is a multi-gpu inference model for generating a strategy
+
 
 ### Get Data
 V1 is complete, gets the data and pivots into a format that can be converted into a prompt easily. To do need a better V2 version that is truely point in time:
@@ -22,28 +45,27 @@ V1 is complete, gets the data and pivots into a format that can be converted int
 - Get the reported date to make sure this is point-in-time
 
 
-### Model Development Notes
+## Model Development Notes
+
+#### 9th Mar - Built the EventBacktester
+Have completed the EventBacktest class to help with evaluating each of the strategies. This backtester takes a list of trades and constructs a portfolio based on the trade (long/ short). The 
 
 #### Hitting out of memory issues with inference tasks
 Refactoring of codebase to allow for multi-GPU inference
 
 
-#### Three runs of the model to date - 14th Feb
+#### 14th Feb - Three runs of the model to date
+Issue with the larger models. Running into out of memory issues and also losing track of the model run results.
 
-
-#### Explored vllm and tensor_parallel - 4th Feb
+#### 4th Feb - Explored vllm and tensor_parallel
 Changed the logic for generating the prompt to reduce the token size of the prompt. It is now 4,257 vs 5,165 before reduction. 
 Checked out:
 - https://medium.com/tr-labs-ml-engineering-blog/tensor-parallel-llm-inferencing-09138daf0ba7
 - https://www.kaggle.com/code/blacksamorez/tensor-parallel-int4-llm/
 
-#### Single security run of the model - 3rd Feb 2025
+#### 3rd Feb - Single security run of the model
 Using Llama 3.3 3B parameter model with no fine tuning. Number of tokens in the prompt 5,165 and need to reduce this. Considering changing the number of fields that are included in the prompt to speed this up. Also need to look at multi-gpu and splitting inference across multiple gpus to be able to test larger models.
 
-
-
-### Company Object
-NEED TO BUILD: Each company should have its own object - this will have the IS, BS and pricing data for the security + the revision date for the datasets to be used when adding. This will be used to build the prompts.
 
 ### Rebuilding .gitignore file
 The following files should be added into the .gitignore file:

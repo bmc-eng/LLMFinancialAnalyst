@@ -1,4 +1,4 @@
-# This is from Bloomberg ESL documentation team and is needed to construction long/ short leg in a portfolio
+# This is from Bloomberg ESL documentation and is needed to construction long/ short leg in a portfolio
 
 import pandas as pd
 import numpy as np
