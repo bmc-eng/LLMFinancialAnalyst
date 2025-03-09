@@ -104,6 +104,8 @@ class EventBacktest:
         self.analytics_data_config = get_analytics_data_config(
             self.start, self.end, self.universe_name, data_pack_path
         )
+        self.price.bind_universe(self.universe)
+        self.price_df = self.price.df()
 
 
     def _bql_execute_single(self, univ: list[str], field: dict[str, bql.om.bql_item.BqlItem]) -> pd.DataFrame:
@@ -124,7 +126,11 @@ class EventBacktest:
         return merged_df[['Date', 'figi', 'Decision', 'Confidence']].rename(columns={'figi':'Security'}) 
 
     
-    def run(self, events_df: pd.DataFrame, run_name: str) -> _WorkflowResults:
+    def run(self, events_df: pd.DataFrame, 
+            run_name: str, 
+            use_trading_dts: bool = False,
+            implementation_lag: int = 1,
+            rebalance_freq: str = 'D') -> _WorkflowResults:
         """Execute an Events backtest using a dataframe of trade events
         events_df: Dataframe of trades with Date, Security, Trade direction (BUY/ SELL/ HOLD) and Confidence score
         run_name: Name for the backtest
@@ -133,8 +139,7 @@ class EventBacktest:
         events_figi_df = self._convert_to_figi(events_df)
 
         # STEP 2: Create the pricing signal used as dummy input into ESL
-        self.price.bind_universe(self.universe)
-        price_df = self.price.df()
+        #price_df = self.price.df()
         signal = SignalFactory.from_user(
             user_func=signal_fn,
             start=self.start,
@@ -144,17 +149,27 @@ class EventBacktest:
         )
         
         # STEP 3: Construct the portfolio weighting scheme
-        trading_dates = list(events_df['Date'].unique())
-        port_long_short = portfolio_construction.from_user(
-            compute_weights_fn= build_port_weights,
-            total_returns=self.total_return,
-            trading_calendar=self.trading_calendar,
-            implementation_lag=1,
-            rebalance_freq="D",
-            #trading_dates=trading_dates,
-            events_df=events_figi_df,
-            signal=price_df,
-        )
+        if use_trading_dts:
+            trading_dates = list(events_df['Date'].unique())
+            port_long_short = portfolio_construction.from_user(
+                compute_weights_fn= build_port_weights,
+                total_returns=self.total_return,
+                trading_calendar=self.trading_calendar,
+                implementation_lag=implementation_lag,
+                trading_dates=trading_dates,
+                events_df=events_figi_df,
+                signal=self.price_df,
+            )
+        else:
+            port_long_short = portfolio_construction.from_user(
+                compute_weights_fn= build_port_weights,
+                total_returns=self.total_return,
+                trading_calendar=self.trading_calendar,
+                implementation_lag=implementation_lag,
+                rebalance_freq=rebalance_freq,
+                events_df=events_figi_df,
+                signal=self.price_df,
+            )
 
         # STEP 4: Build the backtest
         backtest = build_backtest(
@@ -174,5 +189,6 @@ class EventBacktest:
             ],
             analytics_data_config= self.analytics_data_config,
         )
+            
         # STEP 5: Run and return the results
         return backtest.evaluate_graph()
