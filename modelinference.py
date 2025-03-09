@@ -17,8 +17,7 @@ from ipywidgets import IntProgress, Label, HBox
 #from helper import get_s3_folder
 import company_data
 import prompts
-import utils.modelHelper as mh
-#from utils.modelHelper import ModelHelper
+import utils.model_helper as mh
 from utils.logger import Logger
 
 from tqdm import tqdm
