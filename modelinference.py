@@ -23,10 +23,6 @@ from utils.logger import Logger
 from tqdm import tqdm
 
 
-class RunConfig():
-    pass
-
-
 class InferenceRun():
     """
     Class to run all inference tasks on one or multi-GPUs
@@ -43,7 +39,7 @@ class InferenceRun():
         self.model_reload: bool               = run_config['model_reload']  # Reload the model from huggingface: bool
         self.model_quant: BitsAndBytesConfig  = run_config['model_quant']   # QuantConfig object from bitsandbytes :QuantConfig
         self.system_prompt: str               = run_config['system_prompt'] # System prompt for inference
-        self.multi_gpu: bool.                 = run_config['multi-gpu']     # Single thread or multi-gpu
+        self.multi_gpu: bool                  = run_config['multi-gpu']     # Single thread or multi-gpu
         
         # data parameters
         self.dataset      = run_config['dataset']
@@ -154,20 +150,21 @@ class InferenceRun():
     
     
     def run_model(self, prompt, tokenizer, model):
-         """
-         Perform a single inference run with a prompt, tokenizer and model
-         prompt:       string of the prompt to run through the model
-         tokenizer:    the tokenizer to encode and decode tokens into the model
-         model:        huggingface model
-         returns       string decoded inference output of the model
-         """
-        tokens = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
+        """
+        Perform a single inference run with a prompt, tokenizer and model
+        prompt:       string of the prompt to run through the model
+        tokenizer:    the tokenizer to encode and decode tokens into the model
+        model:        huggingface model
+        returns       string decoded inference output of the model
+        """
+        tokens = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True )
         model_inputs = tokenizer([tokens], return_tensors='pt').to("cuda")
         generated_ids = model.generate(**model_inputs, pad_token_id=tokenizer.eos_token_id, max_new_tokens=2000)
         parsed_ids = [
             output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
         ]
         return tokenizer.batch_decode(parsed_ids, skip_special_tokens=True)[0]
+    
     
     def format_json(self, llm_output):
         # remove all the broken lines
