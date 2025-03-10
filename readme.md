@@ -47,6 +47,9 @@ V1 is complete, gets the data and pivots into a format that can be converted int
 
 ## Model Development Notes
 
+#### 10th Mar - Completed strategy analysis
+Added each of the strategies into the events backtester and plotted their results. The results are suggesting that the open source models do not beat the base line of the consensus sellside analyst for the Dow Jones. 
+
 #### 9th Mar - Built the EventBacktester
 Have completed the EventBacktest class to help with evaluating each of the strategies. This backtester takes a list of trades and constructs a portfolio based on the trade (long/ short). It does this by modifying the portfolio weights and ignoring the signals that are usually used in the Signal Lab backtester. The EventBacktester is a wrapper that sits on top of Bloomberg Signal Lab. 
 
