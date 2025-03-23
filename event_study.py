@@ -11,7 +11,6 @@ from bloomberg.bquant.signal_lab.workflow import (
     build_backtest,
 )
 
-#from bloomberg.bquant.signal_lab.workflow.utils import get_sandbox_path
 from bloomberg.bquant.signal_lab.workflow.workflow_orchestrator import _WorkflowResults
 
 import utils.event_backtest_helper as ebh
@@ -201,12 +200,14 @@ class EventBacktest:
         return self.bt_results
 
     
-    def get_return_data(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+    def get_return_data(self, results: _WorkflowResults = None) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Return the cumulative return datasets for the strategy and the benchmark
         Output: df_strategy_return, df_benchmark_return time-series """
-        if self.bt_results == None:
+        if self.bt_results == None and results == None:
             raise Exception("Backtest object is missing! Please call run() first to run the backtest")
         else:
+            if results != None:
+                self.bt_results = results
             # Return time series
             df_strategy_return = self.bt_results.analytics["CumulativeReturn"].read()['gross']['COMBINED'].read()
             # Benchmark Return
@@ -214,11 +215,13 @@ class EventBacktest:
             return df_strategy_return, df_benchmark_return
 
     
-    def get_performance_data(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+    def get_performance_data(self, results: _WorkflowResults = None) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Return the YoY performance data for the benchmark and the strategy"""
-        if self.bt_results == None:
+        if self.bt_results == None and results == None:
             raise Exception("Backtest object is missing! Please call run() first to run the backtest")
         else:
+            if results != None:
+                self.bt_results = results
             # Strategy YoY Performance
             df_strategy_performance = self.bt_results.analytics['PerformanceStatisticsByYear'].read()['gross']['COMBINED'].read()
             # Benchmark YoY Performance
