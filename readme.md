@@ -47,6 +47,12 @@ V1 is complete, gets the data and pivots into a format that can be converted int
 
 ## Model Development Notes
 
+#### 23rd Mar - Started work on Bedrock
+Run a multi-agentic approch with Bedrock to get deep thought and structured output. 
+
+#### 19th Mar - OpenAI results run in Langgraph
+Took 2hours 23 mins to run on 896 prompts in OpenAI. The results as well were not very good. Qwen model results were also very poor compared to Llama for open source.
+
 #### 14th Mar - Run model with Qwen but getting issues with CoT
 Running into a strange error in the multi-threading code that have not been able to work out how to resolve. It is throwing the error after 1:30h so very difficult to replicate. W0314 09:47:59.334846 336 site-packages/torch/multiprocessing/spawn.py:169] Terminating process 371 via signal SIGTERM Updating logic to try to resolve this.
 
