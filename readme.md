@@ -47,6 +47,9 @@ V1 is complete, gets the data and pivots into a format that can be converted int
 
 ## Model Development Notes
 
+#### 14th Mar - Run model with Qwen but getting issues with CoT
+Running into a strange error in the multi-threading code that have not been able to work out how to resolve. It is throwing the error after 1:30h so very difficult to replicate. W0314 09:47:59.334846 336 site-packages/torch/multiprocessing/spawn.py:169] Terminating process 371 via signal SIGTERM Updating logic to try to resolve this.
+
 #### 10th Mar - Completed strategy analysis
 Added each of the strategies into the events backtester and plotted their results. The results are suggesting that the open source models do not beat the base line of the consensus sellside analyst for the Dow Jones. 
 

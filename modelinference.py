@@ -187,8 +187,8 @@ class InferenceRun():
             return llm_output
         
     
-    def run_multi_gpu(self, log_at=1, start_count=0):
-        
+    def run_multi_gpu(self, log_at: int=1, start_count: int=0):
+        """Run an inference task with multiple GPUs. This is the entry point for a multi-gpu task"""
         
         # load the accelerator
         accelerator = Accelerator()
@@ -220,29 +220,35 @@ class InferenceRun():
         
         # Clear the memory to free up space in local disk
         self.helper.clear_folder(self.model_s3_loc)
+
+        all_prompts = all_prompts[800:]
             
         with accelerator.split_between_processes(all_prompts) as prompts:
             results = []
             print("starting backtest...")
             
             for prompt in prompts:
-                response = self.run_model(prompt['prompt'], tokenizer, model)
-                formatted_response = {'date': prompt['date'], 'security': prompt['security'], 'response': self.format_json(response)}
-                results.append(formatted_response)
-            
-                if accelerator.is_main_process:
-
-                    # Update progress
-                    count += 1
-                    progress.update(accelerator.num_processes)
+                try:
+                    response = self.run_model(prompt['prompt'], tokenizer, model)
+                    formatted_response = {'date': prompt['date'], 'security': prompt['security'], 'response': self.format_json(response)}
+                    results.append(formatted_response)
+                
+                    if accelerator.is_main_process:
+    
+                        # Update progress
+                        count += 1
+                        progress.update(accelerator.num_processes)
+                except Exception as e:
+                    print(f"Process {torch.multiprocessing.current_process().name} crashed: {e}")
+                
 
                     # if count > 0 and count % log_at == 0:
                     #     #results_gathered = gather_object(results)
                     #     print("gathered results")
                     #     self.logger.log(results_gathered, f"{self.run_name} - {datetime.datetime.now()}.json")
         
-        
-        
+        print("Finished run...")
+        accelerator.wait_for_everyone()
         results_gathered = gather_object(results)
         accelerator.wait_for_everyone()
         print("Gathered results...")
@@ -256,7 +262,7 @@ class InferenceRun():
         accelerator.wait_for_everyone()
         
 
-    def run_single(self,log_at=1, start_count=0):
+    def run_single(self, log_at: int=1, start_count: int=0):
         
         # load the model
         model = self.load_model_single() 

@@ -15,7 +15,6 @@ def generate_trade_report(data: dict) -> dict:
             response = result['response']
             try:
                 decision.append(response['decision'])
-                confidence.append(response['confidence score'])
             except:
                 try:
                     #response = result['response']
@@ -33,22 +32,18 @@ def generate_trade_report(data: dict) -> dict:
 
                     if isBuy and not(isSell or isHold):
                         decision.append('BUY')
-                        confidence.append(np.nan)
-                        continue
-                    if isSell and not(isBuy or isHold):
+                    elif isSell and not(isBuy or isHold):
                         decision.append('SELL')
-                        confidence.append(np.nan)
-                        continue
-                    if isHold and not(isBuy or isSell):
+                    elif isHold and not(isBuy or isSell):
                         decision.append('HOLD')
-                        confidence.append(np.nan)
-                        continue
-
-                    decision.append('Missing')
-                    confidence.append(np.nan)
+                    else:
+                        decision.append('Missing')
                 except:
                     decision.append('Missing')
-                    confidence.append(np.nan)
+            try:
+                confidence.append(response['confidence score'])
+            except:
+                confidence.append(np.nan)
         except:
             print(f'Missing date {count}')
         
