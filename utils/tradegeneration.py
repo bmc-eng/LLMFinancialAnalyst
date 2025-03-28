@@ -41,9 +41,15 @@ def generate_trade_report(data: dict) -> dict:
                 except:
                     decision.append('Missing')
             try:
-                confidence.append(response['confidence score'])
+                if 'confidence score' in response.keys():
+                    confidence.append(response['confidence score'])
+                elif 'confidence' in response.keys():
+                    confidence.append(response['confidence'])
+                else:
+                    confidence.append(np.nan)
             except:
-                confidence.append(np.nan)
+                    confidence.append(np.nan) 
+                
         except:
             print(f'Missing date {count}')
         

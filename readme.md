@@ -48,7 +48,7 @@ V1 is complete, gets the data and pivots into a format that can be converted int
 ## Model Development Notes
 
 #### 23rd Mar - Started work on Bedrock
-Run a multi-agentic approch with Bedrock to get deep thought and structured output. 
+Run a multi-agentic approch with Bedrock to get deep thought and structured output. Have run with Claude but the results have not been very good compared to the Llama 3M model. Have changed the temperature and filtered to remove less confident recommendations to see if this will improve. Running another model with a slightly lower temperature 0.7 >> 0.5. Each model is taking around 10 mins to run.
 
 #### 19th Mar - OpenAI results run in Langgraph
 Took 2hours 23 mins to run on 896 prompts in OpenAI. The results as well were not very good. Qwen model results were also very poor compared to Llama for open source.
