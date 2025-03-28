@@ -159,7 +159,10 @@ class InferenceRun():
         """
         tokens = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True )
         model_inputs = tokenizer([tokens], return_tensors='pt').to("cuda")
-        generated_ids = model.generate(**model_inputs, pad_token_id=tokenizer.eos_token_id, max_new_tokens=2000)
+        generated_ids = model.generate(**model_inputs, 
+                                       pad_token_id=tokenizer.eos_token_id, 
+                                       max_new_tokens=2000,
+                                      temperature=0.4)
         parsed_ids = [
             output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
         ]
@@ -220,8 +223,6 @@ class InferenceRun():
         
         # Clear the memory to free up space in local disk
         self.helper.clear_folder(self.model_s3_loc)
-
-        all_prompts = all_prompts[800:]
             
         with accelerator.split_between_processes(all_prompts) as prompts:
             results = []
@@ -241,11 +242,6 @@ class InferenceRun():
                 except Exception as e:
                     print(f"Process {torch.multiprocessing.current_process().name} crashed: {e}")
                 
-
-                    # if count > 0 and count % log_at == 0:
-                    #     #results_gathered = gather_object(results)
-                    #     print("gathered results")
-                    #     self.logger.log(results_gathered, f"{self.run_name} - {datetime.datetime.now()}.json")
         
         print("Finished run...")
         accelerator.wait_for_everyone()
@@ -275,7 +271,7 @@ class InferenceRun():
         all_prompts = self.create_all_prompts(True)
         
         # test run
-        all_prompts = all_prompts[:4]
+        #all_prompts = all_prompts[:4]
         progress = tqdm(total=len(all_prompts), position=0, leave=True)
         count = start_count
               
