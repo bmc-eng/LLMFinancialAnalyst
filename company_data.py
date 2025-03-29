@@ -7,6 +7,10 @@ import pandas as pd
 
 # Helper class to manage the quarterly point in time datasets
 class SecurityData:
+    """Object to retrieve all of the downloaded company data from S3.
+    dataset_folder - Folder in S3 with all of the data
+    dataset_name - name of the dataset
+    use_local - dataset can be passed to the object to speed up reloading"""
     # Initiatise with a dataset. 
     def __init__(self, dataset_folder, dataset_name, use_local=None):
         self.data = {}

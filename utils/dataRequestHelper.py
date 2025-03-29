@@ -12,23 +12,26 @@ def get_s3_folder():
 
 # set up the data requests
 def setup_request(universe, as_of_date):
-    univ = bq.univ.members(universe, dates=as_of_date)
+    #univ = bq.univ.members(universe, dates=as_of_date)
 
+    univ = bq.univ.list(universe, dates=as_of_date)
     params = {
         'currency': 'USD',
-        'fa_period_type': 'Q',
+        'fa_period_type': 'BT',
         'fa_period_offset': bq.func.range('-5Q','0Q'),
         'fa_period_year_end': 'C1231',
         'dates': as_of_date,
-        'fa_act_est_data': 'A'
+        'fa_act_est_data': 'A',
+        'fa_period_type_source': 'Q'
     }
 
     params_no_currency = {
-        'fa_period_type': 'Q',
-        'fa_period_offset': bq.func.range('-5Q','0Y'),
+        'fa_period_type': 'BT',
+        'fa_period_offset': bq.func.range('-5Q','0Q'),
         'fa_period_year_end': 'C1231',
         'dates': as_of_date,
-        'fa_act_est_data': 'A'
+        'fa_act_est_data': 'A',
+        'fa_period_type_source': 'Q'
     }
 
     is_fields = {
