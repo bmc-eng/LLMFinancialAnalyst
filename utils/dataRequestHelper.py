@@ -17,7 +17,7 @@ def setup_request(universe, as_of_date):
     univ = bq.univ.list(universe, dates=as_of_date)
     params = {
         'currency': 'USD',
-        'fa_period_type': 'BT',
+        'fa_period_type': 'LTM',
         'fa_period_offset': bq.func.range('-5Q','0Q'),
         'fa_period_year_end': 'C1231',
         'dates': as_of_date,
@@ -26,7 +26,7 @@ def setup_request(universe, as_of_date):
     }
 
     params_no_currency = {
-        'fa_period_type': 'BT',
+        'fa_period_type': 'LTM',
         'fa_period_offset': bq.func.range('-5Q','0Q'),
         'fa_period_year_end': 'C1231',
         'dates': as_of_date,
