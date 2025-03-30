@@ -114,11 +114,11 @@ class InferenceRun():
         
     
     
-    def create_all_prompts(self, is_save_prompts=False):
+    def create_all_prompts(self, force_refresh=False, is_save_prompts=False):
         """
         Create all of the prompts ready for inference
         """
-        if not os.path.exists(f'Data/{self.run_name}/prompts.json'):
+        if force_refresh or not os.path.exists(f'Data/{self.run_name}/prompts.json') :
             print("Requesting all datasets...")
             company_info = company_data.SecurityData('tmp/fs',self.dataset_loc)
 
@@ -205,7 +205,7 @@ class InferenceRun():
             
             start_time = datetime.datetime.now()
             # Load and prep the data once
-            all_prompts = self.create_all_prompts(True)
+            all_prompts = self.create_all_prompts()
             progress = tqdm(total=len(all_prompts), position=0, leave=True)
             count = start_count
               
