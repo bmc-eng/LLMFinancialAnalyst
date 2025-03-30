@@ -2,8 +2,10 @@ import boto3
 import os
 import torch
 import json
+import transformers
 
 from transformers import AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from s3fs import S3FileSystem
 
 # Class to help with loading models
@@ -26,6 +28,35 @@ class ModelHelper():
             key = file['Key']
             file_name = model_name + '/' + key[key.find(model_name + '/') + len(model_name) + 1:]
             self.client.download_file(self.bucket, key, file_name)
+    
+
+    def load_model_from_hf(self, model_id, use_quantization=False, quant_config=None, device='auto'):
+        """
+        Load the model from Huggingface when a full model refresh is needed
+        """
+        if use_quantization:
+            model = AutoModelForCausalLM.from_pretrained(model_id, device_map=device, quantization_config=quant_config)
+        else:
+            model = AutoModelForCausalLM.from_pretrained(model_id, device_map=device, torch_dtype=torch.bfloat16)
+        return model
+
+    def save_model_locally(self, model, model_name, model_folder):
+        local_filepath = f'{model_folder}/{model_name}'
+        model.save_pretrained(local_filepath)
+    
+    def get_model_and_save(self, model_id, 
+                           model_name,
+                           model_tmp_location,
+                           use_quantization=False, 
+                           quant_config=None, 
+                           device='auto'):
+        model = self.load_model_from_hf(model_id, use_quantization, quant_config, device)
+        # save file locally first
+        self.save_model_locally(model, model_name, model_tmp_location)
+        #push to the cloud
+        self.save_model_to_s3(f'{model_tmp_location}/{model_name}', model_name)
+        # remove the local folder
+        self.clear_folder(f'{model_tmp_location}/{model_name}')
     
     
     # move model from local folder to an s3 folder

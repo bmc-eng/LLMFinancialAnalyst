@@ -211,15 +211,13 @@ class InferenceRun():
               
             print(f"Memory footprint: {model.get_memory_footprint() / 1e9:,.1f} GB")
         
-        print("Waiting...")
+        #print("Waiting...")
         accelerator.wait_for_everyone()
         
         # Load the data back into each GPU memory
         with open(f'{self.project_folder}/prompts.json', 'rb') as f:
             all_prompts = json.load(f)
             
-        #FOR TESTING ONLY
-        #all_prompts = all_prompts[:8]
         
         # Clear the memory to free up space in local disk
         self.helper.clear_folder(self.model_s3_loc)
@@ -243,11 +241,11 @@ class InferenceRun():
                     print(f"Process {torch.multiprocessing.current_process().name} crashed: {e}")
                 
         
-        print("Finished run...")
+        #print("Finished run...")
         accelerator.wait_for_everyone()
         results_gathered = gather_object(results)
         accelerator.wait_for_everyone()
-        print("Gathered results...")
+        #print("Gathered results...")
         
         if accelerator.is_main_process:
             end_time = datetime.datetime.now()

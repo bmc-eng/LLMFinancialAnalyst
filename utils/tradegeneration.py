@@ -1,7 +1,5 @@
 import numpy as np
 
-def generate_trade_report_from_earnings()
-
 def generate_trade_report(data: dict) -> dict:
     date: list[str] = []
     sec: list[str]  = []
