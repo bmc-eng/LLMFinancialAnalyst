@@ -77,6 +77,14 @@ class ModelHelper():
             res = self.client.upload_file(local_path, self.bucket, obj_name)
         print(res)
         
+
+    def list_all_folders(self):
+        """Function to list all folders and files in the sub folder"""
+        files = []
+        for file in self.client.list_objects(Bucket=self.bucket, Prefix=f'{self.username}/{self.s3_sub_folder}')['Contents']:
+            key = file['Key']
+            print(key)
+    
     
     def clear_folder(self, local_folder, count=0):
         """Function to delete all files and folders in a directory."""
