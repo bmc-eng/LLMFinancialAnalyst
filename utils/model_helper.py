@@ -10,15 +10,20 @@ from s3fs import S3FileSystem
 
 # Class to help with loading models
 class ModelHelper():
+    """Class to help manage the saving and loading of huggingface models into S3 storage."""
     
     # Initialise with the folder for the model
-    def __init__(self, s3_sub_folder):
+    def __init__(self, s3_sub_folder: str):
+        """Initialise with a subfolder in the Bloomberg Lab S3 bucket.
+        s3_sub_folder: str a sub folder to save models in S3"""
+        
         self.username = os.environ['BQUANT_USERNAME']
         self.s3_sub_folder = s3_sub_folder
         self.bucket = os.environ['BQUANT_SANDBOX_USER_BUCKET']
         self.client = boto3.client("s3")
         
-    def _get_model(self, model_name):
+    def _get_model(self, model_name: str):
+        """Internal function to get a model from S3 by the model name"""
         folder = f'{self.username}/{self.s3_sub_folder}/{model_name}/'
 
         if not os.path.exists(model_name):
@@ -30,9 +35,12 @@ class ModelHelper():
             self.client.download_file(self.bucket, key, file_name)
     
 
-    def load_model_from_hf(self, model_id, use_quantization=False, quant_config=None, device='auto'):
+    def load_model_from_hf(self, model_id:str, 
+                           use_quantization:bool=False, 
+                           quant_config:BitsAndBytesConfig=None, 
+                           device='auto') -> AutoModelForCausalLM:
         """
-        Load the model from Huggingface when a full model refresh is needed
+        Load the model from Huggingface when a full model refresh is needed. Returns a model
         """
         if use_quantization:
             model = AutoModelForCausalLM.from_pretrained(model_id, device_map=device, quantization_config=quant_config)
@@ -69,8 +77,9 @@ class ModelHelper():
             res = self.client.upload_file(local_path, self.bucket, obj_name)
         print(res)
         
-    # need to clear the files from local drive after downloading the model
+    
     def clear_folder(self, local_folder, count=0):
+        """Function to delete all files and folders in a directory."""
         try:
             for root, dirs, files in os.walk(local_folder, topdown=False):
                 for name in files:
@@ -78,7 +87,7 @@ class ModelHelper():
                 for name in dirs:
                     os.rmdir(os.path.join(root, name))
         except: 
-            # check not stuck in loop
+            # check not stuck in loop - needed for multi-threading tasks
             if count <= 3:
                 self.clear_folder(local_folder, count + 1)
      

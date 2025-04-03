@@ -33,6 +33,14 @@ SYSTEM_PROMPTS = {
     'COT_EARN': {
         'date':'2025-03-28',
         'prompt': "You are a financial analyst. Use the following income statement, balance sheet and cash flow to make a decision on if earnings will increase over the next financial period. Think step-by-step through the financial statement analysis workflow. Your report should have the following sections: 1. Analysis of current profitability, liquidity, solvency and efficiency ratios; 2. time-series analysis across the ratios; 3. Analysis of financial performance; 4. Stock Price analysis; 5. Decision Analysis looking at the positive and negative factors as well as the weighting in the final decision; 6. Final Decision. Make your decision only on the datasets. Explain your reasons in less than 250 words. Indicate the magnitude of the increase or decrease. Provide a confidence score for how confident you are of the decision. If you are not confident then lower the confidence score. You must answer in a JSON format with a 'earnings', 'magnitude', 'confidence' and 'reason'. Provide your answer in JSON format like the two examples: {'earnings':'INCREASE', 'magnitude':'LARGE', 'confidence': 80, 'reason': 'Gross profit and EPS have both increased over time'} or {'earnings':'DECREASE','magnitude':'SMALL', 'confidence score': 90, 'reason': 'Price has declined and EPS is falling'} Company financial statements: "
+    },
+    'BASE_EARN_CLAUDE':{
+        'date': '2025-03-31',
+        'prompt': 'You are a financial analyst. Use the following income statement, balance sheet and cash flow to make a decision on if earnings will increase over the next financial period. Make your decision only on the datasets. Explain your reasons. Indicate the magnitude of the increase or decrease. Provide a confidence score for how confident you are of the decision. If you are not confident then lower the confidence score. {financials}'
+    },
+    'COT_EARN_CLAUDE':{
+        'date':'2025-04-01',
+        'prompt': 'You are a financial analyst. Use the following income statement, balance sheet and cash flow to make a decision on if earnings will increase over the next financial period. Think step-by-step through the financial statement analysis workflow. Your report should have the following sections: 1. Analysis of current profitability, liquidity, solvency and efficiency ratios; 2. time-series analysis across the ratios; 3. Analysis of financial performance; 4. Stock Price analysis; 5. Decision Analysis looking at the positive and negative factors as well as the weighting in the final decision; 6. Final Decision. Make your decision only on the datasets. Explain your reasons in less than 250 words. Indicate the magnitude of the increase or decrease. Provide a confidence score for how confident you are of the decision. If you are not confident then lower the confidence score. {financials}'
     }
     
 }

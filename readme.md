@@ -7,6 +7,7 @@ Dissertation project for Computer Science MSc. This project will investigate the
 3. Comparison of models to the base
 4. Creation of an agentic model that takes into account news and industry reports (also fine tune an open source model for financial statement analysis)
 
+Agentic model will have: Earnings direction, drivers of earnings analysis from industry reports, peer group analysis, stock valuation model. This will make a prediction on the whether the stock is valued 
 
 ## Build Steps
 The deliverables for this project are:
@@ -46,6 +47,9 @@ V1 is complete, gets the data and pivots into a format that can be converted int
 
 
 ## Model Development Notes
+
+#### 3rd Apr - Model changed to guess the direction of earnings
+
 
 #### 23rd Mar - Started work on Bedrock
 Run a multi-agentic approch with Bedrock to get deep thought and structured output. Have run with Claude but the results have not been very good compared to the Llama 3M model. Have changed the temperature and filtered to remove less confident recommendations to see if this will improve. Running another model with a slightly lower temperature 0.7 >> 0.5. Each model is taking around 10 mins to run.
