@@ -9,6 +9,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 import torch
 from accelerate import Accelerator, notebook_launcher
 from accelerate.utils import gather_object
+#from peft import PeftModel # PEFT does not work with multi-GPU
 
 import pandas as pd
 from IPython.display import Markdown, display
@@ -39,7 +40,8 @@ class InferenceRun():
         self.model_reload: bool               = run_config['model_reload']  # Reload the model from huggingface: bool
         self.model_quant: BitsAndBytesConfig  = run_config['model_quant']   # QuantConfig object from bitsandbytes :QuantConfig
         self.system_prompt: str               = run_config['system_prompt'] # System prompt for inference
-        self.multi_gpu: bool                  = run_config['multi-gpu']     # Single thread or multi-gpu
+        self.multi_gpu: bool                  = run_config['multi-gpu'] # Single thread or multi-gpu
+        #self.fine_tuned: str                  = run_config['fine_tuned_dir']
         
         # data parameters
         self.dataset      = run_config['dataset']
@@ -195,8 +197,13 @@ class InferenceRun():
         
         # load the accelerator
         accelerator = Accelerator()
+        
         # load the model
+        #if self.fine_tuned_dir == None:
         model = self.load_model_multi_gpu(accelerator) 
+        #else:
+        #    base_model = self.load_model_multi_gpu(accelerator)
+        #    model = PeftModel.from_pretrained(base_model,self.fine_tuned_dir)
         tokenizer = AutoTokenizer.from_pretrained(self.model_hf_id)
 
         

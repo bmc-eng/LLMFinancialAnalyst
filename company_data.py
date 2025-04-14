@@ -27,6 +27,15 @@ class SecurityData:
         else:
             self.data = use_local
     
+    def get_unique_securities(self):
+        """Function to get all of the unique securities in a dataset"""
+        secs = []
+        for date in self.data.keys():
+            for sec in self.data[date].keys():
+                if sec not in secs:
+                    secs.append(sec)
+        return secs
+    
     # Get all the dates for backtesting
     def get_dates(self):
         return list(self.data.keys())
