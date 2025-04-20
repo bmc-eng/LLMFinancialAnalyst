@@ -16,14 +16,17 @@ class SecurityData:
         self.data = {}
         
         if use_local == None:
-            user_bucket_name = os.environ['BQUANT_SANDBOX_USER_BUCKET']
-            bqnt_username = os.environ['BQUANT_USERNAME']
-
-            path_to_s3 = f's3://{user_bucket_name}/{bqnt_username}/{dataset_folder}/{dataset_name}'
-            s3 = S3FileSystem()
-
-            with s3.open(path_to_s3, 'rb') as f:
-                self.data = json.load(f)
+            try:
+                user_bucket_name = os.environ['BQUANT_SANDBOX_USER_BUCKET']
+                bqnt_username = os.environ['BQUANT_USERNAME']
+    
+                path_to_s3 = f's3://{user_bucket_name}/{bqnt_username}/{dataset_folder}/{dataset_name}'
+                s3 = S3FileSystem()
+    
+                with s3.open(path_to_s3, 'rb') as f:
+                    self.data = json.load(f)
+            except:
+                raise Exception("Company data must be downloaded first before it is requested.")
         else:
             self.data = use_local
     

@@ -88,7 +88,7 @@ def signal_fn(signal: DataItemFactory) -> DataItemFactory:
 class EventBacktest:
 
     
-    def __init__(self, start: str, end: str, universe_name: str, data_pack_path: str):
+    def __init__(self, start: str, end: str, universe_name: str, data_pack_path: str, reload_data:bool = False):
         """ Initialise the Backtester with time period and universe"""
         self.start: str         = start
         self.end: str           = end
