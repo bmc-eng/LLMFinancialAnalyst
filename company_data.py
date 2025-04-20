@@ -5,12 +5,13 @@ from s3fs import S3FileSystem
 
 import pandas as pd
 
-# Helper class to manage the quarterly point in time datasets
 class SecurityData:
-    """Object to retrieve all of the downloaded company data from S3.
-    dataset_folder - Folder in S3 with all of the data
-    dataset_name - name of the dataset
-    use_local - dataset can be passed to the object to speed up reloading"""
+    """
+    Class to retrieve all of the downloaded company data from S3.
+    dataset_folder:      str - Folder in S3 with all of the data
+    dataset_name:        str - name of the dataset
+    use_local (Optional) bool - dataset can be passed to the object to speed up reloading
+    """
     # Initiatise with a dataset. 
     def __init__(self, dataset_folder, dataset_name, use_local=None):
         self.data = {}
@@ -30,8 +31,11 @@ class SecurityData:
         else:
             self.data = use_local
     
-    def get_unique_securities(self):
-        """Function to get all of the unique securities in a dataset"""
+    def get_unique_securities(self) -> list[str]:
+        """
+        Function to get all of the unique securities in a dataset
+        Return: List of securities
+        """
         secs = []
         for date in self.data.keys():
             for sec in self.data[date].keys():
@@ -39,19 +43,34 @@ class SecurityData:
                     secs.append(sec)
         return secs
     
-    # Get all the dates for backtesting
-    def get_dates(self):
+    
+    def get_dates(self) -> list[str]:
+        """
+        Function to get all of the dates in the dataset for backtesting
+        Return: List of dates
+        """
         return list(self.data.keys())
     
-    # Get all the securities reporting on a given date
-    def get_securities_reporting_on_date(self, date):
+    
+    def get_securities_reporting_on_date(self, date:str) -> list[str]:
+        """
+        Function to get all of the securities reporting on a given date
+        Return: List of securities
+        """
         try:
             return list(self.data[date].keys())
         except:
             return 'no data'
     
-    # Get the prompt for a security on a given date with all three statements
-    def get_prompt(self, date, security, system_prompt):
+    
+    def get_prompt(self, date, security, system_prompt) -> str:
+        """
+        Construct a prompt for a security on a date in a chat format
+        date:          str - Date of rebalance
+        security:      str - Security reporting on given date
+        system_prompt: str - The system prompt to use in construction of the prompt
+        Return: prompt string
+        """
         is_statement = self.get_security_statement(date, security, 'is')
         bs_statement = self.get_security_statement(date, security, 'bs')
         px_values = self.get_security_statement(date, security, 'px')
@@ -64,8 +83,12 @@ class SecurityData:
 
         ]
         return prompt
+
     
-    def total_securities_in_backtest(self):
+    def total_securities_in_backtest(self) -> int:
+        """
+        Function to return the total number of 
+        """
         count = 0
         for date in self.get_dates():
             count += len(self.get_securities_reporting_on_date(date))
@@ -99,6 +122,9 @@ class SecurityData:
         
     
     
-    def get_all_data(self):
+    def get_all_data(self) -> dict:
+        """
+        
+        """
         return self.data
     
