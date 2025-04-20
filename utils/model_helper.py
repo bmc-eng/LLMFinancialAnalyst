@@ -8,13 +8,13 @@ from transformers import AutoModelForCausalLM
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from s3fs import S3FileSystem
 
-# Class to help with loading models
+
 class ModelHelper():
-    """Class to help manage the saving and loading of huggingface models into S3 storage."""
+    """Class to help manage the saving and loading of Huggingface models into S3 storage."""
     
     # Initialise with the folder for the model
     def __init__(self, s3_sub_folder: str):
-        """Initialise with a subfolder in the Bloomberg Lab S3 bucket.
+        """Constructor: Initialise with a subfolder in the Bloomberg Lab S3 bucket.
         s3_sub_folder: str a sub folder to save models in S3"""
         
         self.username = os.environ['BQUANT_USERNAME']
