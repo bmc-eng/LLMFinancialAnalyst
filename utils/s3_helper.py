@@ -104,7 +104,9 @@ class S3Helper:
             # the folder is empty
             pass
         return files
-        
+
+    def load_json_file(self)
+    
     def get_file(self, filename:str, local_filename: str = None):
         """
         Download a file from Bloomberg Lab S3

@@ -21,10 +21,12 @@ import pandas as pd
 
 
 def build_port_weights(signal: pd.DataFrame, events_df: pd.DataFrame) -> pd.DataFrame:
-    """Function to convert a dataframe of signals into a portfolio by adjusting the weights
+    """
+    Function to convert a dataframe of signals into a portfolio by adjusting the weights
+    
     signal: DataFrame of a pricing signal to use as the base
     events_df: DataFrame with Date, Security, Decision (BUY/ SELL/ HOLD) and Confidence Columns
-    OUTPUT: Dataframe of the weights of a long/ short portfolio
+    Returns: Dataframe of the weights of a long/ short portfolio
     """
     long_portfolio =  signal.copy(deep=True)
     short_portfolio = signal.copy(deep=True)
@@ -81,12 +83,16 @@ def build_port_weights(signal: pd.DataFrame, events_df: pd.DataFrame) -> pd.Data
 
 
 def signal_fn(signal: DataItemFactory) -> DataItemFactory:
-    """Function to return the dummy data signal during the backtest. """
+    """
+    Function to return the dummy data signal during the backtest. 
+    """
     return signal
 
 
 class EventBacktest:
-
+    """
+    Event Backtesting Class. 
+    """
     
     def __init__(self, start: str, end: str, universe_name: str, data_pack_path: str, reload_data:bool = False):
         """ Initialise the Backtester with time period and universe"""

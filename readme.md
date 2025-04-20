@@ -7,7 +7,13 @@ Dissertation project for Computer Science MSc. This project will investigate the
 3. Comparison of models to the base
 4. Creation of an agentic model that takes into account news and industry reports (also fine tune an open source model for financial statement analysis)
 
-Agentic model will have: Earnings direction, drivers of earnings analysis from industry reports, peer group analysis, stock valuation model. This will make a prediction on the whether the stock is valued 
+Agentic model will have: Earnings direction, drivers of earnings analysis from industry reports, peer group analysis, stock valuation model. This will make a prediction on the whether the stock is valued correctly.
+
+## Research Objectives
+To build on the work of Kim et al (2024), Xu et al (2025), Zhang, Zhao et al (2024) to produce a multi-agentic financial analyst system that is backtested and creates long-term (3 month) investment decisions. 
+
+## Running the Project
+This project requires Bloomberg Lab for Enterprise to run. It will require 
 
 ## Build Steps
 The deliverables for this project are:
@@ -47,6 +53,11 @@ V1 is complete, gets the data and pivots into a format that can be converted int
 
 
 ## Model Development Notes
+
+#### 20th Apr - Run of fine-tuned models
+Created inference module for fine tuned model - needed to create a separate class for this to continue to support PEFT. Experienced errors in the multi-GPU inference runs when including the PEFT library. It is possible that this is not supported from a multi-threading perspective when using notebook_launcher. Investigation of this is out of scope for the current project.
+
+Rationalised the S3 Helper and ModelHelper objects to inherit from each other. 
 
 #### 3rd Apr - Model changed to guess the direction of earnings
 
