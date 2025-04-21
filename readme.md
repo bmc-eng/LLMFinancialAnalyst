@@ -55,7 +55,7 @@ V1 is complete, gets the data and pivots into a format that can be converted int
 ## Model Development Notes
 
 #### 21st Apr - News request class + Agentic model
-Created the ability to request Bloomberg News headlines. 
+Created the ability to request Bloomberg News headlines. Updated the Model Helper class. 
 
 #### 20th Apr - Run of fine-tuned models
 Created inference module for fine tuned model - needed to create a separate class for this to continue to support PEFT. Experienced errors in the multi-GPU inference runs when including the PEFT library. It is possible that this is not supported from a multi-threading perspective when using notebook_launcher. Investigation of this is out of scope for the current project.

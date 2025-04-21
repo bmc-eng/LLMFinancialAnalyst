@@ -10,9 +10,12 @@ bqnt_username = os.environ['BQUANT_USERNAME']
 def get_s3_folder():
     return f's3://{user_bucket_name}/{bqnt_username}/tmp/'
 
-# set up the data requests
+
 def setup_request(universe, as_of_date):
-    #univ = bq.univ.members(universe, dates=as_of_date)
+    """
+    Set up the BQL query with the correct fields for financial statements, 
+    stock price and metadata for the sector. 
+    """
 
     univ = bq.univ.list(universe, dates=as_of_date)
     params = {
@@ -167,7 +170,7 @@ def setup_request(universe, as_of_date):
     }
 
     metadata = {
-        
+        'Sector': bq.data.bics_level_2_industry_group_name()
     }
     
-    return univ, is_fields, bs_fields, price
+    return univ, is_fields, bs_fields, price, metadata

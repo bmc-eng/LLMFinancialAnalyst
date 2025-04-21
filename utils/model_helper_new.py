@@ -96,7 +96,7 @@ class ModelHelper(S3Helper):
         return super().list_folder(model_name)
     
     
-    def load_model(self, model_name: str, device: str = 'auto') -> AutoModelForCausalLM:
+    def load_model(self, model_name: str, device: str = 'auto', remove_local_once_loaded:bool = False) -> AutoModelForCausalLM:
         """
         Load the model from an S3 bucket
         model_name: Location in S3 of the model within the subfolder
@@ -104,7 +104,12 @@ class ModelHelper(S3Helper):
         returns:    Huggingface Model
         """
         super().get_folder(model_name)
-        return AutoModelForCausalLM.from_pretrained(model_name, device_map=device, torch_dtype=torch.bfloat16 )
+        model = AutoModelForCausalLM.from_pretrained(model_name, device_map=device, torch_dtype=torch.bfloat16 )
+
+        if remove_local_once_loaded:
+            self.clear_folder(model_name)
+
+        return model
         
     
     
