@@ -228,8 +228,8 @@ class FinancialDataRequester:
         all_data = {}
         is_first = True
         dates = dates_and_securities.reset_index()['AS_OF_DATE'].unique()
-        max_count = len(dates)
-        progress = tqdm(total=len(dates_and_securities), position=0, leave=True)
+        max_count = len(dates_and_securities.index.get_level_values(0).unique())
+        progress = tqdm(total=max_count, position=0, leave=True)
         # Loop through each date and extract securities
         for date in dates:
             if is_first:
@@ -242,17 +242,21 @@ class FinancialDataRequester:
                     df_is = self._process_single_date(univ, is_fields)
                     df_bs = self._process_single_date(univ, bs_fields)
                     df_px = self._process_single_date(univ, price)
-                    all_data[as_of_date] = self._convert_to_dict(securities, df_is, df_bs, df_px)
+                    df_mt = self._process_single_date(univ, meta)
+                    all_data[as_of_date] = self._convert_to_dict(securities, df_is, df_bs, df_px, df_mt)
                 except:
-                    print(f'DataRequest: Missing data - {as_of_date}')
+                    logging.info(f'DataRequest: Missing data - {as_of_date}')
                 progress.update()
         return all_data
 
 
         
-    def _get_reporting_dates_per_rebalance(self, date, index):
+    def _get_reporting_dates_per_rebalance(self, date: str, index: str):
         """
-        
+        BQL Request for the reporting dates of companies in the rebalance period
+        date: str - the as of date for point in time data
+        index: str - Bloomberg Index ID
+        Return: DataFrame 
         """
         univ = self._bq.univ.members(index, dates=date)
         field = self._bq.data.sales_rev_turn(dates=bq.func.range('-5Y','0D'), fa_period_type=self.reporting_period)
@@ -264,6 +268,9 @@ class FinancialDataRequester:
 
     
     def _format_request_to_df(self, data, fields):
+        """
+        Function to reformat the dataframe. 
+        """
         fields = list(fields.keys())
         df_all = [data[index].df()[data[index].df()['PERIOD_END_DATE'] != 0]
                       .pivot(columns='PERIOD_END_DATE', values=[fields[index]])
@@ -283,7 +290,7 @@ class FinancialDataRequester:
         return df6.loc[(df6!=0).any(axis=1)]
     
     
-    def _convert_to_dict(self, securities, df_is, df_bs, df_px):
+    def _convert_to_dict(self, securities, df_is, df_bs, df_px, df_mt):
         date = {}
         for security in securities:
             # Convert DF to JSON
@@ -291,10 +298,12 @@ class FinancialDataRequester:
             df_is_sec = df_is.loc[security].to_json()
             df_bs_sec = df_bs.loc[security].to_json()
             df_px_sec = df_px.loc[security].set_index('DATE')[['Price']].to_json()
+            df_mt_sec = df_mt.loc[security].to_json()
             # Convert to string and store
             data['is'] = json.dumps(df_is_sec)
             data['bs'] = json.dumps(df_bs_sec)
             data['px'] = json.dumps(df_px_sec)
+            data['mt'] = json.dumps(df_mt_sec)
             date[security] = data
         return date
     
