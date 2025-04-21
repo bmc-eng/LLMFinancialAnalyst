@@ -174,3 +174,13 @@ def setup_request(universe, as_of_date):
     }
     
     return univ, is_fields, bs_fields, price, metadata
+
+class FinancialDataRequester:
+    """
+    Class to request historical point-in-time datasets for use in the backtests
+    """
+
+    def __init__(self, index_id, dataset_name, rebalance_dates):
+        self.index_id = index_id
+        self.dataset_name = dataset_name
+        self.rebalance_dates = rebalance_dates

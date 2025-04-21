@@ -57,18 +57,19 @@ class InferenceRun():
         self.project_folder = f'Data/{run_name}'
         if not os.path.exists(self.project_folder):
             os.makedirs(self.project_folder)
- 
+
     
-    def save_run(self, results):
+    def run(self):
         """
-        Save the results of the inference run at the end locally
-        results:     List of JSON objects from each model inference task
+        Entry point for running an inference task on a large list of prompts
+        This will run in either single model mode or multi-gpu mode
+        
         """
-        with open(f'{self.project_folder}/results - {self.run_date}.json', 'w') as f:
-            json.dump(results, f)
-            
-        self.logger.log(results, f"Results_{self.run_date}.json")
-        print("Run Completed!")
+        
+        if self.multi_gpu:
+            self.run_multi_gpu()
+        else:
+            self.run_single()
         
     
     
@@ -127,31 +128,7 @@ class InferenceRun():
             output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
         ]
         return tokenizer.batch_decode(parsed_ids, skip_special_tokens=True)[0]
-    
-    
-    def format_json(self, llm_output:str):
-        """
-        Function to format open-source output into a JSON object. StructuredOutput is not available with models.
-        llm_output: str - Response string from LLM
-        """
-        # remove all the broken lines
-        form = llm_output.replace('\n','')
-        # Find the start and end of the JSON input
-        try:
-            soj = form.find('```json')
-            eoj = form.find('}```')
-            
-            if eoj == -1:
-                eoj = len(llm_output)
-                llm_output = llm_output + '}```'
-            # Pull out the additional context
-            additional = form[:soj]
-            additional += form[eoj + 4:]
-            json_obj = json.loads(form[soj + 7:eoj + 1])
-            json_obj['AdditionalContext'] = additional
-            return json_obj
-        except:
-            return llm_output
+
         
     
     def run_multi_gpu(self, log_at: int=1, start_count: int=0):
@@ -197,7 +174,9 @@ class InferenceRun():
             for prompt in prompts:
                 try:
                     response = self.run_model(prompt['prompt'], tokenizer, model)
-                    formatted_response = {'date': prompt['date'], 'security': prompt['security'], 'response': self.format_json(response)}
+                    formatted_response = {'date': prompt['date'], 
+                                          'security': prompt['security'], 
+                                          'response': self._format_json(response)}
                     results.append(formatted_response)
 
                     # Update on progress if main process
@@ -222,7 +201,7 @@ class InferenceRun():
                           'dataset': self.dataset, 
                           'model': self.model_hf_id, 
                           'results': results_gathered}
-            self.save_run(end_result)
+            self._save_run(end_result)
 
         # Wait for all processes to stop and exit gracefully
         accelerator.wait_for_everyone()
@@ -236,7 +215,9 @@ class InferenceRun():
         # load the model
         if self.model_reload:
             #Reload the model from Huggingface
-            model = self.model_helper.load_model_from_hf(self.model_hf_id, True if self.quant != None else False, self.quant)
+            model = self.model_helper.load_model_from_hf(self.model_hf_id, 
+                                                         True if self.quant != None else False, 
+                                                         self.quant)
 
         else:
             # Load model from memory
@@ -269,7 +250,7 @@ class InferenceRun():
             response = self.run_model(prompt['prompt'], tokenizer, model)
             formatted_response = {'date': prompt['date'], 
                                   'security': prompt['security'], 
-                                  'response': self.format_json(response)}
+                                  'response': self._format_json(response)}
             results.append(formatted_response)
 
             # Update progress
@@ -283,17 +264,41 @@ class InferenceRun():
                       'dataset': self.dataset, 
                       'model': self.model_hf_id, 
                       'results': results_gathered}
-        self.save_run(end_result)
+        self._save_run(end_result)
+
     
+    def _save_run(self, results: dict):
+        """
+        Save the results of the inference run at the end locally
+        results:     Dict of the model inference metadata and each inference JSON object
+        """
+        with open(f'{self.project_folder}/results - {self.run_date}.json', 'w') as f:
+            json.dump(results, f)
+            
+        self.logger.log(results, f"Results_{self.run_date}.json")
+        print("Run Completed!")
     
-    def run(self):
+
+    def _format_json(self, llm_output:str):
         """
-        Entry point for running an inference task on a large list of prompts
-        This will run in either single model mode or multi-gpu mode
-        
+        Function to format open-source output into a JSON object. StructuredOutput is not available with models.
+        llm_output: str - Response string from LLM
         """
-        
-        if self.multi_gpu:
-            self.run_multi_gpu()
-        else:
-            self.run_single()
+        # remove all the broken lines
+        form = llm_output.replace('\n','')
+        # Find the start and end of the JSON input
+        try:
+            soj = form.find('```json')
+            eoj = form.find('}```')
+            
+            if eoj == -1:
+                eoj = len(llm_output)
+                llm_output = llm_output + '}```'
+            # Pull out the additional context
+            additional = form[:soj]
+            additional += form[eoj + 4:]
+            json_obj = json.loads(form[soj + 7:eoj + 1])
+            json_obj['AdditionalContext'] = additional
+            return json_obj
+        except:
+            return llm_output
