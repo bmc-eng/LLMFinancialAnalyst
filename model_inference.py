@@ -26,13 +26,19 @@ from tqdm import tqdm
 
 class InferenceRun():
     """
-    Class to run all inference tasks on one or multi-GPUs
+    Class to run inference tasks on Huggingface models
+    on one or multi-GPUs
     """
     
-    def __init__(self, run_name, run_config):
+    def __init__(self, run_name: str, run_config: dict):
+        """
+        Constructor method for the InferenceRun class
+        run_name: str - the name of the backtest run
+        run_config: a dictionary containing all of the parameters for the inference backtest
+        """
         self.run_name: str = run_name # Description of the model run
         self.run_date: str = datetime.datetime.now()
-        self.helper: mh.ModelHelper = mh.ModelHelper('tmp/fs')
+        self.model_helper: mh.ModelHelper = mh.ModelHelper('tmp/fs')
         
         # model parameters
         self.model_hf_id: str                 = run_config['model_hf_id']   # Model id for tokenizer :str
@@ -51,63 +57,13 @@ class InferenceRun():
         self.project_folder = f'Data/{run_name}'
         if not os.path.exists(self.project_folder):
             os.makedirs(self.project_folder)
-
-        
-
-    def load_model_from_hf(self, model_id, useQuantization=False, device='auto'):
-        """
-        Load the model from Huggingface when a full model refresh is needed
-        """
-        if useQuantization:
-            model = AutoModelForCausalLM.from_pretrained(model_id, device_map=device, quantization_config=self.model_quant)
-        else:
-            model = AutoModelForCausalLM.from_pretrained(model_id, device_map=device, torch_dtype=torch.bfloat16)
-        return model
-    
-    
-    def load_model_from_storage(self, model_location, device='auto'):
-        """
-        Load the model from S3 storage when the model has been pre-saved
-        """
-        return self.helper.load_model(model_location, device)
-        
-        
-    def load_model_multi_gpu(self, accelerator):
-        """
-        Load the model 
-        """
-        if self.model_reload:
-            raise Exception("Download the model first to S3 storage before multi-GPU inference!")
-        else:
-            return self.load_model_from_storage(self.model_s3_loc, device={"":accelerator.process_index})
-    
-    
-    def load_model_single(self):
-        """
-        Load the model into a single GPU
-        """
-        # check if requesting model reload
-        if self.model_reload:
-            #Reload the model from Huggingface
-            if self.model.quant != None:
-                model = self.load_model_from_hf(self.model_hf_id, True)
-            else:
-                model = self.load_model_from_hf(self.model_hf_id)
-        else:
-            # Load model from memory
-            print(f'in class: {self.model_s3_loc}')
-            model = self.load_model_from_storage(self.model_s3_loc)
-            
-        return model
-    
+ 
     
     def save_run(self, results):
         """
-        Save the results of the inference run at the end
+        Save the results of the inference run at the end locally
         results:     List of JSON objects from each model inference task
         """
-        print("Called Save run")
-        
         with open(f'{self.project_folder}/results - {self.run_date}.json', 'w') as f:
             json.dump(results, f)
             
@@ -116,9 +72,11 @@ class InferenceRun():
         
     
     
-    def create_all_prompts(self, force_refresh=False, is_save_prompts=False):
+    def create_all_prompts(self, force_refresh: bool=False, is_save_prompts: bool=False):
         """
         Create all of the prompts ready for inference
+        force_refresh: bool (Optional) - forces a refresh of the data even if its cached locally. False by default
+        is_save_prompts: bool (Optional) - saves the prompts in the local project directory. False by default
         """
         if force_refresh or not os.path.exists(f'Data/{self.run_name}/prompts.json') :
             print("Requesting all datasets...")
@@ -171,7 +129,11 @@ class InferenceRun():
         return tokenizer.batch_decode(parsed_ids, skip_special_tokens=True)[0]
     
     
-    def format_json(self, llm_output):
+    def format_json(self, llm_output:str):
+        """
+        Function to format open-source output into a JSON object. StructuredOutput is not available with models.
+        llm_output: str - Response string from LLM
+        """
         # remove all the broken lines
         form = llm_output.replace('\n','')
         # Find the start and end of the JSON input
@@ -193,20 +155,18 @@ class InferenceRun():
         
     
     def run_multi_gpu(self, log_at: int=1, start_count: int=0):
-        """Run an inference task with multiple GPUs. This is the entry point for a multi-gpu task"""
+        """
+        Run an inference task with multiple GPUs. This is the entry point for a multi-gpu task
+        This needs to be run inside notebook_launcher() to utilise all available GPUs
+        """
         
         # load the accelerator
         accelerator = Accelerator()
         
         # load the model
-        #if self.fine_tuned_dir == None:
-        model = self.load_model_multi_gpu(accelerator) 
-        #else:
-        #    base_model = self.load_model_multi_gpu(accelerator)
-        #    model = PeftModel.from_pretrained(base_model,self.fine_tuned_dir)
+        model = self.model_helper.load_model(self.model_s3_loc, device={"":accelerator.process_index})
         tokenizer = AutoTokenizer.from_pretrained(self.model_hf_id)
 
-        
         # Only load the data and calculate all of the prompts once
         if accelerator.is_main_process:
             
@@ -218,7 +178,7 @@ class InferenceRun():
               
             print(f"Memory footprint: {model.get_memory_footprint() / 1e9:,.1f} GB")
         
-        #print("Waiting...")
+        # wait for all GPUs to finish loading the model
         accelerator.wait_for_everyone()
         
         # Load the data back into each GPU memory
@@ -227,8 +187,9 @@ class InferenceRun():
             
         
         # Clear the memory to free up space in local disk
-        self.helper.clear_folder(self.model_s3_loc)
-            
+        self.model_helper.clear_local_folder(self.model_s3_loc)
+
+        # split the prompts between the available GPUs
         with accelerator.split_between_processes(all_prompts) as prompts:
             results = []
             print("starting backtest...")
@@ -238,35 +199,50 @@ class InferenceRun():
                     response = self.run_model(prompt['prompt'], tokenizer, model)
                     formatted_response = {'date': prompt['date'], 'security': prompt['security'], 'response': self.format_json(response)}
                     results.append(formatted_response)
-                
+
+                    # Update on progress if main process
                     if accelerator.is_main_process:
-    
-                        # Update progress
                         count += 1
                         progress.update(accelerator.num_processes)
                 except Exception as e:
                     print(f"Process {torch.multiprocessing.current_process().name} crashed: {e}")
                 
         
-        #print("Finished run...")
+        # Wait for all GPUs to finish running all their prompts
         accelerator.wait_for_everyone()
         results_gathered = gather_object(results)
         accelerator.wait_for_everyone()
-        #print("Gathered results...")
-        
+
+        # Clean up the backtest and save the results
         if accelerator.is_main_process:
             end_time = datetime.datetime.now()
             print(f"Finished run in {end_time - start_time}")
-            end_result = {'run_date': str(self.run_date), 'system_prompt': self.system_prompt['prompt'], 'dataset': self.dataset, 'model': self.model_hf_id, 'results': results_gathered}
+            end_result = {'run_date': str(self.run_date), 
+                          'system_prompt': self.system_prompt['prompt'], 
+                          'dataset': self.dataset, 
+                          'model': self.model_hf_id, 
+                          'results': results_gathered}
             self.save_run(end_result)
-            
+
+        # Wait for all processes to stop and exit gracefully
         accelerator.wait_for_everyone()
         
 
+    
     def run_single(self, log_at: int=1, start_count: int=0):
-        
+        """
+        Run inference on a single GPU
+        """    
         # load the model
-        model = self.load_model_single() 
+        if self.model_reload:
+            #Reload the model from Huggingface
+            model = self.model_helper.load_model_from_hf(self.model_hf_id, True if self.quant != None else False, self.quant)
+
+        else:
+            # Load model from memory
+            model = self.model_helper.load_model(self.model_s3_loc)
+            
+
         tokenizer = AutoTokenizer.from_pretrained(self.model_hf_id)
 
         # Start the timer      
@@ -283,7 +259,7 @@ class InferenceRun():
         print(f"Memory footprint: {model.get_memory_footprint() / 1e9:,.1f} GB")
         
         # Clear the memory to free up space in local disk
-        self.helper.clear_folder(self.model_s3_loc)
+        self.model_helper.clear_local_folder(self.model_s3_loc)
             
         
         results = []
@@ -291,7 +267,9 @@ class InferenceRun():
             
         for prompt in all_prompts:
             response = self.run_model(prompt['prompt'], tokenizer, model)
-            formatted_response = {'date': prompt['date'], 'security': prompt['security'], 'response': self.format_json(response)}
+            formatted_response = {'date': prompt['date'], 
+                                  'security': prompt['security'], 
+                                  'response': self.format_json(response)}
             results.append(formatted_response)
 
             # Update progress
@@ -300,7 +278,11 @@ class InferenceRun():
         
         end_time = datetime.datetime.now()
         print(f"Finished run in {end_time - start_time}")
-        end_result = {'run_date': str(self.run_date), 'system_prompt': self.system_prompt['prompt'], 'dataset': self.dataset, 'model': self.model_hf_id, 'results': results_gathered}
+        end_result = {'run_date': str(self.run_date), 
+                      'system_prompt': self.system_prompt['prompt'], 
+                      'dataset': self.dataset, 
+                      'model': self.model_hf_id, 
+                      'results': results_gathered}
         self.save_run(end_result)
     
     
@@ -311,11 +293,7 @@ class InferenceRun():
         
         """
         
-        
         if self.multi_gpu:
             self.run_multi_gpu()
         else:
-            model = self.load_model_single()
-            print(f"Memory footprint: {model.get_memory_footprint() / 1e9:,.1f} GB")
-        
-        tokenizer = AutoTokenizer.from_pretrained(model_id)
+            self.run_single()
