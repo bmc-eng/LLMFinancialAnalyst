@@ -165,5 +165,9 @@ def setup_request(universe, as_of_date):
     price = {
         'Price' : bq.data.px_last(dates=bq.func.range('-12M', as_of_date), currency='USD', fill='prev')
     }
+
+    metadata = {
+        
+    }
     
     return univ, is_fields, bs_fields, price

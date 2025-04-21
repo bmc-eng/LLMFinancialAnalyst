@@ -44,7 +44,11 @@ SYSTEM_PROMPTS = {
     },
     'BASE_FINE_TUNED':{
         'date':'2025-04-10',
-        'prompt':'You are a financial analyst.Use the following income statement, balance sheet to estimate the Basic EPS for the next fiscal period. Use only the data in the prompt. Provide a confidence score for how confident you are of the decision. If you are not confident then lower the confidence score.'
+        'prompt':'You are a financial analyst. Use the following income statement, balance sheet to estimate the Basic EPS for the next fiscal period. Use only the data in the prompt. Provide a confidence score for how confident you are of the decision. If you are not confident then lower the confidence score.'
+    },
+    'COT_CLAUDE_TEST':{
+        'date': '2025-04-15',
+        'prompt': 'You are a financial analyst. Use the following income statement, balance sheet and cash flow to make a decision on if earnings will increase over the next financial period. Think step-by-step through the financial statement analysis workflow. Your report should have the following sections: 1. Analysis of current profitability, liquidity, solvency and efficiency ratios; 2. time-series analysis across the ratios; 3. Analysis of financial performance; 4. Stock Price analysis; 5. Decision Analysis looking at the positive and negative factors as well as the weighting in the final decision; 6. Final Decision. Make your decision only on the datasets. 7. Provide a breakdown of information that you wished was included to make a better decision. Explain your reasons in less than 250 words. Indicate the magnitude of the increase or decrease. Provide a confidence score for how confident you are of the decision. If you are not confident then lower the confidence score. {financials}'
     }
     
 }

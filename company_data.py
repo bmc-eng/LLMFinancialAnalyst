@@ -124,7 +124,7 @@ class SecurityData:
     
     def get_all_data(self) -> dict:
         """
-        
+        Function to return all datasets 
         """
         return self.data
     
