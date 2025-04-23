@@ -161,6 +161,7 @@ class FinancialAnalystAgent:
     def clean_headlines(self, state):
         company_details = state.get('company_details')
         unclean_headlines = company_details['headlines']
+        name = company_details['name']
         # Create the prompt to feed into the model
         prompt_in = self.clean_headlines_template.format(headlines=unclean_headlines, security=name)
         clean_headlines = self._analyst_llm(self.llm_small, prompt_in)
