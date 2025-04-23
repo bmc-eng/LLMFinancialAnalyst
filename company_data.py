@@ -61,13 +61,27 @@ class SecurityData:
         except:
             return 'no data'
     
+
+    def get_security_all_data(self, date, security) -> dict:
+        sec_fs = self.get_financial_data_for_security(date, security)
+        stock_price = self.get_stock_prices_for_security(date,security)
+        name = self.all_data[date][security]['mt']['name']
+        figi = self.all_data[date][security]['mt']['figi']
+        sector = self.all_data[date][security]['mt']['sector']
+        return name, figi, sector, sec_fs, stock_price
     
-    def get_data_for_security(self, date, security):
+
+    def get_stock_prices_for_security(self, date, security):
+        px_values = self.get_security_statement(date, security, 'px')
+        return "\n Historical Price: " + px_values.to_string()
+    
+    
+    def get_financial_data_for_security(self, date, security):
         is_statement = self.get_security_statement(date, security, 'is')
         bs_statement = self.get_security_statement(date, security, 'bs')
-        px_values = self.get_security_statement(date, security, 'px')
+        
 
-        company_info = "Income Statement:" + is_statement.to_string() + "\n Balance Sheet: " + bs_statement.to_string() + "\n Historical Price: " + px_values.to_string()
+        company_info = "Income Statement:" + is_statement.to_string() + "\n Balance Sheet: " + bs_statement.to_string() 
 
         return company_info
         
