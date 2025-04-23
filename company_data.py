@@ -2,6 +2,7 @@ import os
 import json
 import boto3
 from s3fs import S3FileSystem
+from utils.s3_helper import S3Helper
 
 import pandas as pd
 
@@ -18,13 +19,15 @@ class SecurityData:
         
         if use_local == None:
             try:
-                user_bucket_name = os.environ['BQUANT_SANDBOX_USER_BUCKET']
-                bqnt_username = os.environ['BQUANT_USERNAME']
+                s3h = S3Helper(dataset_folder)
+                s3h.get_file(dataset_name, f'/tmp/{dataset_name}')
+                # user_bucket_name = os.environ['BQUANT_SANDBOX_USER_BUCKET']
+                # bqnt_username = os.environ['BQUANT_USERNAME']
     
-                path_to_s3 = f's3://{user_bucket_name}/{bqnt_username}/{dataset_folder}/{dataset_name}'
-                s3 = S3FileSystem()
+                # path_to_s3 = f's3://{user_bucket_name}/{bqnt_username}/{dataset_folder}/{dataset_name}'
+                # s3 = S3FileSystem()
     
-                with s3.open(path_to_s3, 'rb') as f:
+                with open(f'/tmp/{dataset_name}', 'rb') as f:
                     self.data = json.load(f)
             except:
                 raise Exception("Company data must be downloaded first before it is requested.")
