@@ -54,6 +54,12 @@ V1 is complete, gets the data and pivots into a format that can be converted int
 
 ## Model Development Notes
 
+#### 23rd Apr - Added the Agentic debate format
+
+
+#### 22nd Apr - Added first version of Agentic model
+Added the flow of the agentic process. Rerun of the fine-tuned model
+
 #### 21st Apr - News request class + Agentic model
 Created the ability to request Bloomberg News headlines. Updated the Model Helper class. 
 
