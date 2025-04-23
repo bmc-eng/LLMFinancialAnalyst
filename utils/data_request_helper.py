@@ -172,11 +172,24 @@ def setup_request(universe, as_of_date):
     }
 
     metadata = {
-        'Sector': bq.data.bics_level_2_industry_group_name()
+        'sector': bq.data.bics_level_1_sector_name(),
+        'figi': bq.data.composite_id_bb_global(),
+        'name': bq.data.name()
+        
     }
     
-    return univ, is_fields, bs_fields, price, metadata
+    return univ, is_fields, bs_fields, price
 
+def setup_metadata(universe):
+    univ = bq.univ.list(universe)
+    metadata = {
+        'sector': bq.data.bics_level_1_sector_name(),
+        'figi': bq.data.composite_id_bb_global(),
+        'full_name': bq.data.name()
+        
+    }
+
+    return univ, metadata
 
 
 class FinancialDataRequester:
@@ -218,6 +231,18 @@ class FinancialDataRequester:
         return df_concat.set_index(['AS_OF_DATE','ID']).sort_values(['AS_OF_DATE'])
 
     
+    def create_financial_dataset(self):
+        rebalance_dates = self.get_rebalance_dates()
+        all_data = self.request_financial_data(rebalance_dates)
+        # request all metadata
+        unique_securities = self._get_unique_securities(all_data)
+        #request metadata
+        univ, meta = setup_metadata(unique_securities)
+        ref_datasets = self._process_metadata(univ, meta)
+        
+        return self._combine_metadata(all_data, ref_datasets)
+        
+    
     
     def request_financial_data(self, dates_and_securities: pd.DataFrame):
         """
@@ -237,13 +262,13 @@ class FinancialDataRequester:
             else:
                 as_of_date = str(date)[0:10]
                 securities = list(dates_and_securities.loc[as_of_date].reset_index()['ID'])
-                univ, is_fields, bs_fields, price, meta = setup_request(securities, as_of_date) 
+                univ, is_fields, bs_fields, price = setup_request(securities, as_of_date) 
                 try:
                     df_is = self._process_single_date(univ, is_fields)
                     df_bs = self._process_single_date(univ, bs_fields)
                     df_px = self._process_single_date(univ, price)
-                    df_mt = self._process_single_date(univ, meta)
-                    all_data[as_of_date] = self._convert_to_dict(securities, df_is, df_bs, df_px, df_mt)
+                    #df_mt = self._process_single_date(univ, meta)
+                    all_data[as_of_date] = self._convert_to_dict(securities, df_is, df_bs, df_px)
                 except:
                     logging.info(f'DataRequest: Missing data - {as_of_date}')
                 progress.update()
@@ -251,6 +276,14 @@ class FinancialDataRequester:
 
 
         
+    def _combine_metadata(self, all_data, metadata):
+        for date in all_data.keys():
+            for sec in all_data[date].keys():
+                all_data[date][sec]['mt'] = {'name': metadata.loc[sec].full_name,
+                                             'figi': metadata.loc[sec].figi,
+                                             'sector': metadata.loc[sec].sector}
+        return all_data
+    
     def _get_reporting_dates_per_rebalance(self, date: str, index: str):
         """
         BQL Request for the reporting dates of companies in the rebalance period
@@ -289,6 +322,20 @@ class FinancialDataRequester:
         df6 = df5[df5.columns[::-1]]
         return df6.loc[(df6!=0).any(axis=1)]
     
+
+    def _get_unique_securities(self, data) -> list[str]:
+        """
+        Function to get all of the unique securities in a dataset
+        Return: List of securities
+        """
+        secs = []
+        for date in data.keys():
+            for sec in data[date].keys():
+                if sec not in secs:
+                    secs.append(sec)
+        return secs
+    
+    
     
     def _convert_to_dict(self, securities, df_is, df_bs, df_px, df_mt):
         date = {}
@@ -298,16 +345,24 @@ class FinancialDataRequester:
             df_is_sec = df_is.loc[security].to_json()
             df_bs_sec = df_bs.loc[security].to_json()
             df_px_sec = df_px.loc[security].set_index('DATE')[['Price']].to_json()
-            df_mt_sec = df_mt.loc[security].to_json()
+            #df_mt_sec = df_mt.loc[security].to_json()
             # Convert to string and store
             data['is'] = json.dumps(df_is_sec)
             data['bs'] = json.dumps(df_bs_sec)
             data['px'] = json.dumps(df_px_sec)
-            data['mt'] = json.dumps(df_mt_sec)
+            #data['mt'] = json.dumps(df_mt_sec)
             date[security] = data
         return date
     
 
+    
+    def _process_metadata(self, securities, fields):
+        req = bql.Request(securities, fields)
+        data = self._bq.execute(req)
+        df = [d.df() for d in data]
+        df1 = pd.concat(df, axis=1)
+        return df1
+        
     
     def _process_single_date(self, securities, fields):
         req = bql.Request(securities, fields)

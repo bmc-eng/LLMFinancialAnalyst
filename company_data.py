@@ -21,11 +21,6 @@ class SecurityData:
             try:
                 s3h = S3Helper(dataset_folder)
                 s3h.get_file(dataset_name, f'/tmp/{dataset_name}')
-                # user_bucket_name = os.environ['BQUANT_SANDBOX_USER_BUCKET']
-                # bqnt_username = os.environ['BQUANT_USERNAME']
-    
-                # path_to_s3 = f's3://{user_bucket_name}/{bqnt_username}/{dataset_folder}/{dataset_name}'
-                # s3 = S3FileSystem()
     
                 with open(f'/tmp/{dataset_name}', 'rb') as f:
                     self.data = json.load(f)
@@ -33,6 +28,7 @@ class SecurityData:
                 raise Exception("Company data must be downloaded first before it is requested.")
         else:
             self.data = use_local
+
     
     def get_unique_securities(self) -> list[str]:
         """
@@ -66,6 +62,16 @@ class SecurityData:
             return 'no data'
     
     
+    def get_data_for_security(self, date, security):
+        is_statement = self.get_security_statement(date, security, 'is')
+        bs_statement = self.get_security_statement(date, security, 'bs')
+        px_values = self.get_security_statement(date, security, 'px')
+
+        company_info = "Income Statement:" + is_statement.to_string() + "\n Balance Sheet: " + bs_statement.to_string() + "\n Historical Price: " + px_values.to_string()
+
+        return company_info
+        
+    
     def get_prompt(self, date, security, system_prompt) -> str:
         """
         Construct a prompt for a security on a date in a chat format
@@ -83,14 +89,30 @@ class SecurityData:
         prompt = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": company_info},
-
         ]
         return prompt
 
+
+    def timeseries_backtest(self):
+        """
+        Returns all of the dates and securities in order for backtest
+        """
+        output_list = []
+        dates = self.get_dates()
+        for date in dates:
+            securities_reporting = self.get_securities_reporting_on_date(date)
+
+            for security in securities_reporting:
+                output_list.append({'date': date, 'security': security})
+
+        return output_list
+        
+    
+    
     
     def total_securities_in_backtest(self) -> int:
         """
-        Function to return the total number of 
+        Function to return the total number of securities
         """
         count = 0
         for date in self.get_dates():
