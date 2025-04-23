@@ -55,7 +55,7 @@ V1 is complete, gets the data and pivots into a format that can be converted int
 ## Model Development Notes
 
 #### 23rd Apr - Added the Agentic debate format
-
+Added the debate format into the test example. Changed and modified the prompts slightly to build consensus and avoid the conversation going round and round in circles. 
 
 #### 22nd Apr - Added first version of Agentic model
 Added the flow of the agentic process. Rerun of the fine-tuned model
