@@ -93,9 +93,9 @@ class SecurityData:
         return prompt
 
 
-    def timeseries_backtest(self):
+    def date_security_timeseries(self):
         """
-        Returns all of the dates and securities in order for backtest
+        Returns all of the dates and securities in order of time.
         """
         output_list = []
         dates = self.get_dates()
@@ -110,7 +110,7 @@ class SecurityData:
     
     
     
-    def total_securities_in_backtest(self) -> int:
+    def total_number_securities(self) -> int:
         """
         Function to return the total number of securities
         """

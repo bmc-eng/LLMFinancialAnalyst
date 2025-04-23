@@ -211,7 +211,23 @@ class FinancialDataRequester:
         self.rebalance_dates = rebalance_dates
         self.reporting_period = reporting_frequency
         self._bq = bql.Service()
+        
 
+    def create_financial_dataset(self) -> dict:
+        """
+        Main function to create the security datasets. 
+        Return: Returns a dictionary of dates representing the reporting dates
+        Inside each date is a disctionary of securities and datasets contained in the dictionary.
+        """
+        rebalance_dates = self.get_rebalance_dates()
+        all_data = self.get_financial_data(rebalance_dates)
+        # request all metadata
+        unique_securities = self._get_unique_securities(all_data)
+        #request metadata
+        meta = setup_metadata()
+        ref_datasets = self._process_metadata(unique_securities, meta)
+        
+        return self._combine_metadata(all_data, ref_datasets)
 
     
     def get_rebalance_dates(self) -> pd.DataFrame:
@@ -234,25 +250,8 @@ class FinancialDataRequester:
         return df_concat.set_index(['AS_OF_DATE','ID']).sort_values(['AS_OF_DATE'])
 
     
-    def create_financial_dataset(self) -> dict:
-        """
-        Main function to create the security datasets. 
-        Return: Returns a dictionary of dates representing the reporting dates
-        Inside each date is a disctionary of securities and datasets contained in the dictionary.
-        """
-        rebalance_dates = self.get_rebalance_dates()
-        all_data = self.request_financial_data(rebalance_dates)
-        # request all metadata
-        unique_securities = self._get_unique_securities(all_data)
-        #request metadata
-        meta = setup_metadata()
-        ref_datasets = self._process_metadata(unique_securities, meta)
-        
-        return self._combine_metadata(all_data, ref_datasets)
-        
     
-    
-    def request_financial_data(self, dates_and_securities: pd.DataFrame):
+    def get_financial_data(self, dates_and_securities: pd.DataFrame):
         """
         Function to loop through all of the dates and securities and request financial statement
         information on each date. 
