@@ -130,7 +130,7 @@ class FinancialAnalystAgent:
         return llm.invoke(prompt).content
     
     
-    def run(self, security_data, news_data: pd.DataFrame, as_of_date: str) -> AnalystState:
+    def run(self, security_data: dict, news_data: pd.DataFrame, as_of_date: str) -> AnalystState:
         """
         Run the agent with a security on a particular date
         security_data: CompanyData - information from the company on the as_of_date
@@ -138,14 +138,14 @@ class FinancialAnalystAgent:
         as_of_date: str - as of date for the analysis to prevent lookahead bias
         """
         # Filter the news first to get the company news filtered by security and date
-        filtered_news = self._filter_news_by_company_by_date(news_data, security.figi, as_of_date)
+        filtered_news = self._filter_news_by_company_by_date(news_data, security_data['figi'], as_of_date)
         # Set up the state to begin the analysis
-        company_details = CompanyData({'name':security_data.name,
-                              'figi_name': security_data.figi_name,
-                              'sector': security_data.sector,
-                              'sec_fs': security_data.sec_fs,
+        company_details = CompanyData({'name':security_data['name'],
+                              'figi_name': security_data['figi'],
+                              'sector': security_data['sector'],
+                              'sec_fs': security_data['sec_fs'],
                               'headlines': filtered_news,
-                              'stock_prices': sec_prices})
+                              'stock_prices': security_data['stock_price']})
         return self.app.invoke({'company_details': company_details})
 
     
@@ -184,15 +184,15 @@ class FinancialAnalystAgent:
         final_report_output = self._analyst_llm(self.llm_thinker, prompt_in)
         return {'senior_report': final_report_output} 
 
-    def filter_news_by_company_by_date(self, news_dataset, security, max_date = None):
+    def _filter_news_by_company_by_date(self, news_dataset, security, max_date = None):
         
         if max_date != None:
             #calaculate the minimum date to get a 3 month window
             min_date = datetime.strptime(max_date,"%Y-%m-%d") + relativedelta(months=-3)
             min_date = min_date.strftime("%Y-%m-%d")
-            filtered_dataset = dataset[(dataset['TimeOfArrival'] < max_date) &  (dataset['TimeOfArrival'] >= min_date) & (dataset['Assigned_ID_BB_GLOBAL'] == security)]
+            filtered_dataset = news_dataset[(news_dataset['TimeOfArrival'] < max_date) &  (news_dataset['TimeOfArrival'] >= min_date) & (news_dataset['Assigned_ID_BB_GLOBAL'] == security)]
         else:
-            filtered_dataset = dataset[dataset['Assigned_ID_BB_GLOBAL'] == security]
+            filtered_dataset = news_dataset[news_dataset['Assigned_ID_BB_GLOBAL'] == security]
         
         filtered_list = filtered_dataset['Headline'].to_list()
     

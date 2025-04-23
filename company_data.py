@@ -6,6 +6,7 @@ from utils.s3_helper import S3Helper
 
 import pandas as pd
 
+
 class SecurityData:
     """
     Class to retrieve all of the downloaded company data from S3.
@@ -63,12 +64,14 @@ class SecurityData:
     
 
     def get_security_all_data(self, date, security) -> dict:
-        sec_fs = self.get_financial_data_for_security(date, security)
-        stock_price = self.get_stock_prices_for_security(date,security)
-        name = self.all_data[date][security]['mt']['name']
-        figi = self.all_data[date][security]['mt']['figi']
-        sector = self.all_data[date][security]['mt']['sector']
-        return name, figi, sector, sec_fs, stock_price
+        security_data = {
+            'sec_fs': self.get_financial_data_for_security(date, security),
+            'stock_price': self.get_stock_prices_for_security(date,security),
+            'name': self.data[date][security]['mt']['name'],
+            'figi': self.data[date][security]['mt']['figi'],
+            'sector': self.data[date][security]['mt']['sector']
+        }
+        return security_data
     
 
     def get_stock_prices_for_security(self, date, security):

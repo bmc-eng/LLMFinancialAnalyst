@@ -192,7 +192,6 @@ def setup_metadata():
     return metadata
 
 
-
 class FinancialDataRequester:
     """
     Class to request historical point-in-time datasets for use in the backtests
