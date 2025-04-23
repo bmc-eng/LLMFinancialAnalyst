@@ -2,12 +2,24 @@ import boto3
 import botocore
 import random
 import json
+import pandas as pd
 
 from langchain.prompts import PromptTemplate
+from langchain_core.runnables import RunnableSequence
+from langchain_core.rate_limiters import InMemoryRateLimiter
+from langchain_aws import ChatBedrock
+from pydantic import BaseModel, Field
+
 from langgraph.graph import START, END, StateGraph
 from langgraph.graph.message import add_messages
 
 from typing import Dict, TypedDict, Optional
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+
+###########################
+######   PROMPTS ##########
+###########################
 
 
 statement_analysis_system_prompt = """You are a financial analyst. Use the following income statement and balance sheet to make a decision on if earnings will increase over the next financial period. Think step-by-step through the financial statement analysis workflow. Your report should have the following sections: 1. Analysis of current profitability, liquidity, solvency and efficiency ratios; 2. time-series analysis across the ratios; 3. Analysis of financial performance; 4. Stock Price analysis; 5. Decision Analysis looking at the positive and negative factors as well as the weighting in the final decision; 6. Final Decision. Make your decision only on the datasets. 7. Provide a breakdown of information that you wished was included to make a better decision. Explain your reasons in less than 250 words. Indicate the magnitude of the increase or decrease. Provide a confidence score for how confident you are of the decision. If you are not confident then lower the confidence score. {financials}"""
@@ -21,6 +33,14 @@ company_news_system_prompt = """You are a financial analyst and are reviewing ne
 senior_analysis_prompt = """You are a senior financial analyst and review your teams work. You are looking at a financial summary and news for 'blah'. Using the summaries only, critique the report and construct an alternative narrative. If the narrative is in agreement with the two reports, make clear your belief in the direction of earning. If in disagreement, state why you disagree. Think through your response. {financial_summary} \n {news_summary}"""
 
 
+###########################
+######   LLM IDS ##########
+###########################
+
+model_claude_id = 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'
+model_claude_small = "us.anthropic.claude-3-5-haiku-20241022-v1:0"
+model_llama_id = 'us.meta.llama3-1-70b-instruct-v1:0'
+model_llama_small_id = "us.meta.llama3-1-8b-instruct-v1:0"
 
 class CompanyData(TypedDict):
     name: str
@@ -49,8 +69,32 @@ class FinancialAnalystAgent:
         """
         Constructor for FinancialAnalystAgent. Requires information on a single company
         """
-        # configure the LLMs
-        
+        # configure connectivity to Bedrock
+        config = botocore.config.Config(read_timeout=1000)
+        boto3_bedrock = boto3.client('bedrock-runtime', config=config)
+
+        rate_limiter = InMemoryRateLimiter(
+            requests_per_second=50,
+            check_every_n_seconds=1,
+            max_bucket_size=10,
+        )
+
+        # Configure the LLMs
+        self.llm_thinker = ChatBedrock(
+            client = boto3_bedrock,
+            model_id = model_claude_id,
+            temperature = 0.01,
+            max_tokens=4000,
+            rate_limiter = rate_limiter
+        )
+
+        self.llm_small = ChatBedrock(
+            client = boto3_bedrock,
+            model_id = model_llama_small_id,
+            temperature = 0.01,
+            max_tokens = 4000,
+            rate_limiter = rate_limiter
+        )
         
         
         # Create the prompt templates
@@ -84,10 +128,25 @@ class FinancialAnalystAgent:
         Function to call an LLM with the prompt
         """
         return llm.invoke(prompt).content
-
     
-    def run(self, security_data, news_data, as_of_date):
-        pass
+    
+    def run(self, security_data, news_data: pd.DataFrame, as_of_date: str) -> AnalystState:
+        """
+        Run the agent with a security on a particular date
+        security_data: CompanyData - information from the company on the as_of_date
+        news_data: pd.DataFrame - all of the Bloomberg News data for the security universe
+        as_of_date: str - as of date for the analysis to prevent lookahead bias
+        """
+        # Filter the news first to get the company news filtered by security and date
+        filtered_news = self._filter_news_by_company_by_date(news_data, security.figi, as_of_date)
+        # Set up the state to begin the analysis
+        company_details = CompanyData({'name':security_data.name,
+                              'figi_name': security_data.figi_name,
+                              'sector': security_data.sector,
+                              'sec_fs': security_data.sec_fs,
+                              'headlines': filtered_news,
+                              'stock_prices': sec_prices})
+        return self.app.invoke({'company_details': company_details})
 
     
     def financial_statement_analysis(self, state):
@@ -95,7 +154,7 @@ class FinancialAnalystAgent:
         company_details = state.get('company_details')
         sec_fs = company_details['sec_fs']
         prompt_in = self.statement_analysis_template.format(financials=sec_fs)
-        financial_analysis = self._analyst_llm(llm_thinker, prompt_in)
+        financial_analysis = self._analyst_llm(self.llm_thinker, prompt_in)
         return {'initial_analysis': financial_analysis}
 
     
@@ -104,7 +163,7 @@ class FinancialAnalystAgent:
         unclean_headlines = company_details['headlines']
         # Create the prompt to feed into the model
         prompt_in = self.clean_headlines_template.format(headlines=unclean_headlines, security=name)
-        clean_headlines = self._analyst_llm(llm_small, prompt_in)
+        clean_headlines = self._analyst_llm(self.llm_small, prompt_in)
         return {'cleaned_headlines': clean_headlines}
 
     
@@ -113,7 +172,7 @@ class FinancialAnalystAgent:
         company_details = state.get('company_details')
         clean_headlines = state.get('cleaned_headlines')
         prompt_in = self.company_news_template.format(headlines=clean_headlines[1:], sector=company_details['sector'])
-        news_summarisation = self._analyst_llm(llm_thinker, prompt_in)
+        news_summarisation = self._analyst_llm(self.llm_thinker, prompt_in)
         return {'news_summary': news_summarisation}
 
     
@@ -122,5 +181,22 @@ class FinancialAnalystAgent:
         initial_analysis = state.get('initial_analysis')
         news_summary = state.get('news_summary')
         prompt_in = self.senior_analyst_template.format(financial_summary=initial_analysis, news_summary=news_summary)
-        final_report_output = self._analyst_llm(llm_thinker, prompt_in)
+        final_report_output = self._analyst_llm(self.llm_thinker, prompt_in)
         return {'senior_report': final_report_output} 
+
+    def filter_news_by_company_by_date(self, news_dataset, security, max_date = None):
+        
+        if max_date != None:
+            #calaculate the minimum date to get a 3 month window
+            min_date = datetime.strptime(max_date,"%Y-%m-%d") + relativedelta(months=-3)
+            min_date = min_date.strftime("%Y-%m-%d")
+            filtered_dataset = dataset[(dataset['TimeOfArrival'] < max_date) &  (dataset['TimeOfArrival'] >= min_date) & (dataset['Assigned_ID_BB_GLOBAL'] == security)]
+        else:
+            filtered_dataset = dataset[dataset['Assigned_ID_BB_GLOBAL'] == security]
+        
+        filtered_list = filtered_dataset['Headline'].to_list()
+    
+        if len(filtered_list) >= 50:
+            return random.sample(filtered_list, 50)
+        else:
+            return filtered_list

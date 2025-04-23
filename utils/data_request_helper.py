@@ -180,8 +180,8 @@ def setup_request(universe, as_of_date):
     
     return univ, is_fields, bs_fields, price
 
-def setup_metadata(universe):
-    univ = bq.univ.list(universe)
+def setup_metadata():
+    #univ = bq.univ.list(universe)
     metadata = {
         'sector': bq.data.bics_level_1_sector_name(),
         'figi': bq.data.composite_id_bb_global(),
@@ -189,14 +189,14 @@ def setup_metadata(universe):
         
     }
 
-    return univ, metadata
+    return metadata
+
 
 
 class FinancialDataRequester:
     """
     Class to request historical point-in-time datasets for use in the backtests
     """
-
     def __init__(self, index_id:str, dataset_name:str, 
                  rebalance_dates: list[str], reporting_frequency: str):
         """
@@ -214,31 +214,39 @@ class FinancialDataRequester:
 
 
     
-    def get_rebalance_dates(self):
+    def get_rebalance_dates(self) -> pd.DataFrame:
         """
         Function to calculate the securities rebalancing on which dates. 
         This calculates point-in-time which securities report on which dates.
         """
-        all_data = []
+        rebalance_requests = []
         progress = tqdm(total=len(self.rebalance_dates), position=0, leave=True)
         
         for date in self.rebalance_dates:
-            all_data.append(self._get_reporting_dates_per_rebalance(date, self.index_id))
-            logging.info("DataRequest: Complete for ", date)
+            # Request the companies reporting on the rebalance date
+            rebalance_requests.append(self._get_reporting_dates_per_rebalance(date, self.index_id))
+            # Update progress 
             progress.update()
-        df = pd.concat(all_data)
+        # Create a dataframe of the results
+        df = pd.concat(rebalance_requests)
+        # Aggregate by deates and securities with the reporting date.
         df_concat = df[['ID','AS_OF_DATE','PERIOD_END_DATE']].sort_values('PERIOD_END_DATE', ascending=True).drop_duplicates(subset=['ID','PERIOD_END_DATE'], keep='first')
         return df_concat.set_index(['AS_OF_DATE','ID']).sort_values(['AS_OF_DATE'])
 
     
-    def create_financial_dataset(self):
+    def create_financial_dataset(self) -> dict:
+        """
+        Main function to create the security datasets. 
+        Return: Returns a dictionary of dates representing the reporting dates
+        Inside each date is a disctionary of securities and datasets contained in the dictionary.
+        """
         rebalance_dates = self.get_rebalance_dates()
         all_data = self.request_financial_data(rebalance_dates)
         # request all metadata
         unique_securities = self._get_unique_securities(all_data)
         #request metadata
-        univ, meta = setup_metadata(unique_securities)
-        ref_datasets = self._process_metadata(univ, meta)
+        meta = setup_metadata()
+        ref_datasets = self._process_metadata(unique_securities, meta)
         
         return self._combine_metadata(all_data, ref_datasets)
         
@@ -272,11 +280,15 @@ class FinancialDataRequester:
                 except:
                     logging.info(f'DataRequest: Missing data - {as_of_date}')
                 progress.update()
+        progress.update()
         return all_data
 
 
         
-    def _combine_metadata(self, all_data, metadata):
+    def _combine_metadata(self, all_data: dict, metadata: pd.DataFrame):
+        """
+        Internal function to combine the metadata with the financial statement data
+        """
         for date in all_data.keys():
             for sec in all_data[date].keys():
                 all_data[date][sec]['mt'] = {'name': metadata.loc[sec].full_name,
@@ -286,23 +298,29 @@ class FinancialDataRequester:
     
     def _get_reporting_dates_per_rebalance(self, date: str, index: str):
         """
-        BQL Request for the reporting dates of companies in the rebalance period
+        Internal function for the BQL Request for the reporting dates of companies in the rebalance period
         date: str - the as of date for point in time data
         index: str - Bloomberg Index ID
-        Return: DataFrame 
+        Return: DataFrame of reporting periods and securities
         """
+        # set up the BQL query to get the members of the index as of a specific date
         univ = self._bq.univ.members(index, dates=date)
+        # Request one of the financial statement items to see what day it is reporting
         field = self._bq.data.sales_rev_turn(dates=bq.func.range('-5Y','0D'), fa_period_type=self.reporting_period)
+        # Request the data
         req = bql.Request(univ, field)
         data = self._bq.execute(req)
         df = data[0].df().dropna()
+        # Convert to Dataframe with just the reporting period
         return df.sort_values('PERIOD_END_DATE', ascending=True).reset_index().drop_duplicates(subset=['ID','PERIOD_END_DATE'], keep='first')    
     
 
     
-    def _format_request_to_df(self, data, fields):
+    def _format_request_to_df(self, data, fields: dict) -> pd.DataFrame:
         """
-        Function to reformat the dataframe. 
+        Internal Function to reformat the dataframe and anonymise the datasets (removing the years)
+        data: BQL response object
+        fields: dictionary of BQL fields
         """
         fields = list(fields.keys())
         df_all = [data[index].df()[data[index].df()['PERIOD_END_DATE'] != 0]
@@ -325,7 +343,7 @@ class FinancialDataRequester:
 
     def _get_unique_securities(self, data) -> list[str]:
         """
-        Function to get all of the unique securities in a dataset
+        InternalFunction to get all of the unique securities in a dataset
         Return: List of securities
         """
         secs = []
@@ -337,7 +355,19 @@ class FinancialDataRequester:
     
     
     
-    def _convert_to_dict(self, securities, df_is, df_bs, df_px, df_mt):
+    def _convert_to_dict(self, securities: list, 
+                         df_is: pd.DataFrame, 
+                         df_bs: pd.DataFrame, 
+                         df_px: pd.DataFrame) -> dict:
+        """
+        Internal Function to format the JSON object storing all of the 
+        financial datasets
+        securities: list - list of securities for a specific date
+        df_is: pd.DataFrame - Income Statement Dataframe
+        df_bs: pd.DataFrame - Balance Sheet Dataframe
+        df_px: pd.DataFrame - Stock price Dataframe
+        Returns dict of the date 
+        """
         date = {}
         for security in securities:
             # Convert DF to JSON
@@ -345,18 +375,21 @@ class FinancialDataRequester:
             df_is_sec = df_is.loc[security].to_json()
             df_bs_sec = df_bs.loc[security].to_json()
             df_px_sec = df_px.loc[security].set_index('DATE')[['Price']].to_json()
-            #df_mt_sec = df_mt.loc[security].to_json()
+            
             # Convert to string and store
             data['is'] = json.dumps(df_is_sec)
             data['bs'] = json.dumps(df_bs_sec)
             data['px'] = json.dumps(df_px_sec)
-            #data['mt'] = json.dumps(df_mt_sec)
+
             date[security] = data
         return date
     
 
     
-    def _process_metadata(self, securities, fields):
+    def _process_metadata(self, securities: list, fields: dict) -> pd.DataFrame:
+        """
+        Internal Function to process the company metadata/ reference data
+        """
         req = bql.Request(securities, fields)
         data = self._bq.execute(req)
         df = [d.df() for d in data]
@@ -364,10 +397,15 @@ class FinancialDataRequester:
         return df1
         
     
-    def _process_single_date(self, securities, fields):
+    def _process_single_date(self, securities: list, fields: dict) -> pd.DataFrame:
+        """
+        Internal Function to process the financial statement and stock price
+        BQL requests
+        """
         req = bql.Request(securities, fields)
         data = self._bq.execute(req)
         if len(fields) > 1:
+            # Send the dataframe to be anonymised and converted into the correct format
             return self._format_request_to_df(data, fields)
         else:
             return data[0].df()
