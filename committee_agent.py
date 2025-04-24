@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from langgraph.graph import START, END, StateGraph
 from langgraph.graph.message import add_messages
 
-from typing import Dict, TypedDict, Optional
+from typing import Dict, TypedDict, Optional, Annotated
 
 
 ###########################
@@ -35,7 +35,8 @@ result_system_prompt = """You are part of the investment committee at an asset m
 class CommitteeState(TypedDict):
     classification: Optional[str] = None
     last_agent: Optional[str] = None
-    history: Optional[str] = None
+    history: Annotated[list, add_messages]
+    #history: Optional[str] = None
     summary_buy: Optional[str] = None
     summary_sell: Optional[str] = None
     summary_hold: Optional[str] = None
@@ -142,7 +143,7 @@ class CommitteeAgent():
         
         initial_state = {
             'count':0,
-            'history':'Nothing',
+            'history':['Nothing'],
             'current_response':'',
             'summary_buy': 'Nothing',
             'summary_sell': 'Nothing',
@@ -172,7 +173,7 @@ class CommitteeAgent():
         state_update: str - pass name of object to store the agent summary
         decision: str - identity of the agent
         """
-        summary = state.get('history', '').strip()
+        summary = state.get('history')#.strip()
         summary_x = state.get(state_update, '').strip()
         current_response = state.get('current_response', '').strip()
 
@@ -185,36 +186,43 @@ class CommitteeAgent():
             # get additional information on the security
             financial_statement_analysis = state.get('financial_statement_analysis')
             stock_prices = state.get('stock_prices')
-            
+
+            # Create the summary prompt for initial arguments
             prompt_in = self.agentic_initial_template.format(decision=decision, 
                                                         senior_analyst_report=senior_analyst_report,
                                                         financial_statement=financial_statement_analysis,
                                                         stock_prices=stock_prices,
                                                         sector=sector)
+            # Call the LLM and record the argument
             argument = decision + ":" + self._llm_debate_invoke(prompt_in)
-            
-            if summary == 'Nothing':
-                # This is the first comments of the debate
-                return {'history': 'START\n' + argument, 
+
+            return {'history': [argument], 
                         state_update: argument, 
                         'current_response': argument, 
                         'count':state.get('count')+1,
                         'last_agent': decision}
-            else:
-                return {'history': summary + '\n' + argument, 
-                        state_update: argument, 
-                        'current_response': argument, 
-                        'count':state.get('count')+1,
-                        'last_agent': decision}
+            # if summary == 'Nothing':
+            #     # This is the first comments of the debate
+            #     return {'history': 'START\n' + argument, 
+            #             state_update: argument, 
+            #             'current_response': argument, 
+            #             'count':state.get('count')+1,
+            #             'last_agent': decision}
+            # else:
+            #     return {'history': summary + '\n' + argument, 
+            #             state_update: argument, 
+            #             'current_response': argument, 
+            #             'count':state.get('count')+1,
+            #             'last_agent': decision}
         else:
-            # this runs during the debate
+            # this runs during the debate - the agents can change their decision
             prompt_in = self.agentic_debate_template.format(decision=decision,
                                                           sector=sector,
                                                           senior_analyst_report=senior_analyst_report,
                                                           conversation=summary)
             argument = decision + ":" + self._llm_debate_invoke(prompt_in)
     
-            return {'history': summary + '\n' + argument,
+            return {'history': [argument],#'history': summary + '\n' + argument,
                     'current_response': argument, 
                     'count': state.get('count') + 1,
                     'last_agent': decision}
@@ -239,7 +247,7 @@ class CommitteeAgent():
         return self._debate_format(state, 'summary_hold', 'HOLD')
     
     def _result(self, state):
-        summary = state.get('history').strip()
+        summary = state.get('history')#.strip()
         prompt_in = self.results_template.format(conversation=summary)
         return {"results": self._llm_debate_invoke(prompt_in)}
 
@@ -247,12 +255,14 @@ class CommitteeAgent():
     def _decide_next_node(self, state):
         last_agent = state.get('last_agent')
         current_consensus = state.get('consensus')
+        count = state.get('count')
         if state.get('summary_sell', '') == 'Nothing':
             return 'handle_sell'
         if state.get('summary_hold', '') == 'Nothing':
             return 'handle_hold'
-    
-        if len(set(current_consensus.values())) == 1:
+
+        # If there is a majority decision then end the process
+        if count % 3 == 0 and len(set(current_consensus.values())) == 2:
             # all the agents are in consensus
             return 'result'
         else:
