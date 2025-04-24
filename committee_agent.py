@@ -56,7 +56,9 @@ class CommitteeState(TypedDict):
 
 
 class CommitteeAgent():
-
+    """
+    Class to define the committee debating agents. These agents will define the 
+    """
 
     def __init__(self):
         """
@@ -161,7 +163,8 @@ class CommitteeAgent():
 
         return self.app.invoke(initial_state)
         
-        
+    def get_graph(self):
+        return self.app.get_graph()
     
     def _llm_debate_invoke (self, prompt: str) -> str:
         """
@@ -267,7 +270,7 @@ class CommitteeAgent():
             return 'handle_hold'
 
         # If there is a majority decision then end the process
-        if count % 3 == 0 and len(set(current_consensus.values())) >= 2:
+        if count % 3 == 0 and len(set(current_consensus.values())) <= 2:
             # all the agents are in consensus
             return 'result'
         else:

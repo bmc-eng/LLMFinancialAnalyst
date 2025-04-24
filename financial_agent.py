@@ -170,6 +170,10 @@ class FinancialAnalystAgent:
                               'stock_prices': security_data['stock_price']})
         return self.app.invoke({'company_details': company_details})
 
+
+    def get_graph(self):
+        return self.app.get_graph()
+
     
     def _financial_statement_analysis(self, state):
         # Create the prompt to feed into the model
