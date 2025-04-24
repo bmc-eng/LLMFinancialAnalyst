@@ -138,8 +138,7 @@ class CommitteeAgent():
         
     
     def run(self, senior_analyst_report:str, 
-            financial_statement_analysis: str,
-            security_data: dict)
+            financial_statement_analysis: str, security_data: dict):
         
         initial_state = {
             'count':0,
@@ -239,13 +238,13 @@ class CommitteeAgent():
     def _handle_hold(self, state):
         return self._debate_format(state, 'summary_hold', 'HOLD')
     
-    def _result(state):
+    def _result(self, state):
         summary = state.get('history').strip()
         prompt_in = self.results_template.format(conversation=summary)
         return {"results": self._llm_debate_invoke(prompt_in)}
 
     
-    def _decide_next_node(state):
+    def _decide_next_node(self, state):
         last_agent = state.get('last_agent')
         current_consensus = state.get('consensus')
         if state.get('summary_sell', '') == 'Nothing':
@@ -267,7 +266,7 @@ class CommitteeAgent():
                 return 'handle_buy'
 
     
-    def _check_conv_length(state):
+    def _check_conv_length(self, state):
         return "result" if state.get("count")==12 else "next_node"
 
         

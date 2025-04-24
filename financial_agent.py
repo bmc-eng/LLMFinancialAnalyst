@@ -108,10 +108,10 @@ class FinancialAnalystAgent:
         self.analyst_workflow = StateGraph(AnalystState)
 
         # add each of the nodes
-        self.analyst_workflow.add_node('financial_statement_analysis', self.financial_statement_analysis)
-        self.analyst_workflow.add_node('clean_headlines', self.clean_headlines)
-        self.analyst_workflow.add_node('news_summary', self.news_summary)
-        self.analyst_workflow.add_node('final_report', self.final_report)
+        self.analyst_workflow.add_node('financial_statement_analysis', self._financial_statement_analysis)
+        self.analyst_workflow.add_node('clean_headlines', self._clean_headlines)
+        self.analyst_workflow.add_node('news_summary', self._news_summary)
+        self.analyst_workflow.add_node('final_report', self._final_report)
 
         # add the node edges
         self.analyst_workflow.set_entry_point('financial_statement_analysis')
@@ -149,7 +149,7 @@ class FinancialAnalystAgent:
         return self.app.invoke({'company_details': company_details})
 
     
-    def financial_statement_analysis(self, state):
+    def _financial_statement_analysis(self, state):
         # Create the prompt to feed into the model
         company_details = state.get('company_details')
         sec_fs = company_details['sec_fs']
@@ -158,7 +158,7 @@ class FinancialAnalystAgent:
         return {'initial_analysis': financial_analysis}
 
     
-    def clean_headlines(self, state):
+    def _clean_headlines(self, state):
         company_details = state.get('company_details')
         unclean_headlines = company_details['headlines']
         name = company_details['name']
@@ -168,7 +168,7 @@ class FinancialAnalystAgent:
         return {'cleaned_headlines': clean_headlines}
 
     
-    def news_summary(self, state):
+    def _news_summary(self, state):
         # Create the prompt to feed into the model
         company_details = state.get('company_details')
         clean_headlines = state.get('cleaned_headlines')
@@ -177,7 +177,7 @@ class FinancialAnalystAgent:
         return {'news_summary': news_summarisation}
 
     
-    def final_report(self, state):
+    def _final_report(self, state):
         company_details = state.get('company_details')
         initial_analysis = state.get('initial_analysis')
         news_summary = state.get('news_summary')
