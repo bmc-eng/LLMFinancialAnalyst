@@ -31,12 +31,16 @@ debate_direction_system_prompt = """Based on the response, return the sentiment 
 
 result_system_prompt = """You are part of the investment committee at an asset management firm. You hold the deciding vote on whether to BUY, SELL or HOLD a stock. You must always proceed with the majority decision of the analysts. If there is no majority decision, decide on a winner. There can only be one decision. Only output the decision. The conversation is: {conversation}"""
 
+class Recommendation(BaseModel):
+    recommendation: str = Field(..., description="BUY, SELL or HOLD. One value only")
+    reason: str = Field(..., description="Summary of the final decision from the committee")
+    confidence: str = Field(..., description="How confident you are of the decision")
+
 
 class CommitteeState(TypedDict):
     classification: Optional[str] = None
     last_agent: Optional[str] = None
     history: Annotated[list, add_messages]
-    #history: Optional[str] = None
     summary_buy: Optional[str] = None
     summary_sell: Optional[str] = None
     summary_hold: Optional[str] = None
@@ -233,7 +237,7 @@ class CommitteeAgent():
         current_consensus = state.get('consensus')
         prompt_in = self.debate_direction_template.format(conversation=response_from_agent)
         last_node = self._llm_debate_invoke(prompt_in)
-        print(last_agent + ":" + last_node)
+        #print(last_agent + ":" + last_node)
         current_consensus[last_agent] = last_node
         return {'consensus': current_consensus}
     
@@ -249,7 +253,8 @@ class CommitteeAgent():
     def _result(self, state):
         summary = state.get('history')#.strip()
         prompt_in = self.results_template.format(conversation=summary)
-        return {"results": self._llm_debate_invoke(prompt_in)}
+        structured_llm = self._llm_debate.with_structured_output(Recommendation)
+        return {"results": structured_llm.invoke(prompt_in)}
 
     
     def _decide_next_node(self, state):
@@ -262,7 +267,7 @@ class CommitteeAgent():
             return 'handle_hold'
 
         # If there is a majority decision then end the process
-        if count % 3 == 0 and len(set(current_consensus.values())) == 2:
+        if count % 3 == 0 and len(set(current_consensus.values())) >= 2:
             # all the agents are in consensus
             return 'result'
         else:

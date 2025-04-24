@@ -32,6 +32,8 @@ company_news_system_prompt = """You are a financial analyst and are reviewing ne
 
 senior_analysis_prompt = """You are a senior financial analyst and review your teams work. You are looking at a financial summary and news for 'blah'. Using the summaries only, critique the report and construct an alternative narrative. If the narrative is in agreement with the two reports, make clear your belief in the direction of earning. If in disagreement, state why you disagree. Think through your response. {financial_summary} \n {news_summary}"""
 
+analyst_writer_prompt = """You are an assistant to a financial analyst. You are responsible for formatting the documents that the analyst produces into a machine readable format. Use only the information provided in the context. Convert it into the structured output. Do not add anything to the analysts report and do not change the recommendation. Do not hallucinate. Find the investment decision. Find the conclusion. Add all of the wording of the thought process into the steps section. context: {context}"""
+
 
 ###########################
 ######   LLM IDS ##########
@@ -51,12 +53,21 @@ class CompanyData(TypedDict):
     stock_prices: str
 
 
+class EarningsReportOutput(BaseModel):
+    """Class used by Structured Output to format into JSON"""
+    direction: str = Field(..., description="earnings will increase or decrease or stay flat")
+    magnitude: str = Field(..., description="size of the increase or decrease")
+    reason: str = Field(..., description="Summary of the final decision")
+    confidence: str = Field(..., description="How confident you are of the decision")
+
 class AnalystState(TypedDict):
+    """Class used by LangGraph to record State"""
     company_details: Optional[CompanyData]
     initial_analysis: Optional[str]
     cleaned_headlines: Optional[list]
     news_report: Optional[str]
     senior_report: Optional[str]
+    final_output: Optional[EarningsReportOutput]
 
 
 class FinancialAnalystAgent:
@@ -95,6 +106,14 @@ class FinancialAnalystAgent:
             max_tokens = 4000,
             rate_limiter = rate_limiter
         )
+
+        self.llm_report_writer = ChatBedrock(
+            client = boto3_bedrock,
+            model_id = model_claude_small,
+            temperature = 0.01,
+            max_tokens = 4000,
+            rate_limiter = rate_limiter
+        ).with_structured_output(EarningsReportOutput)
         
         
         # Create the prompt templates
@@ -102,6 +121,7 @@ class FinancialAnalystAgent:
         self.clean_headlines_template = PromptTemplate.from_template(clean_headlines_system_prompt)
         self.company_news_template = PromptTemplate.from_template(company_news_system_prompt)
         self.senior_analyst_template = PromptTemplate.from_template(senior_analysis_prompt)
+        self.analyst_assistant_template = PromptTemplate.from_template(analyst_writer_prompt)
         
 
         # set up the LangGraph workflow
@@ -112,13 +132,15 @@ class FinancialAnalystAgent:
         self.analyst_workflow.add_node('clean_headlines', self._clean_headlines)
         self.analyst_workflow.add_node('news_summary', self._news_summary)
         self.analyst_workflow.add_node('final_report', self._final_report)
+        self.analyst_workflow.add_node('structured_report', self._structured_report)
 
         # add the node edges
         self.analyst_workflow.set_entry_point('financial_statement_analysis')
         self.analyst_workflow.add_edge('financial_statement_analysis', 'clean_headlines')
         self.analyst_workflow.add_edge('clean_headlines', 'news_summary')
         self.analyst_workflow.add_edge('news_summary', 'final_report')
-        self.analyst_workflow.add_edge('final_report', END)
+        self.analyst_workflow.add_edge('final_report', 'structured_report')
+        self.analyst_workflow.add_edge('structured_report', END)
 
         self.app = self.analyst_workflow.compile()
 
@@ -184,6 +206,14 @@ class FinancialAnalystAgent:
         prompt_in = self.senior_analyst_template.format(financial_summary=initial_analysis, news_summary=news_summary)
         final_report_output = self._analyst_llm(self.llm_thinker, prompt_in)
         return {'senior_report': final_report_output} 
+
+    def _structured_report(self, state):
+        """Final step to structure the report into something ready for output"""
+        senior_analyst_report = state.get('senior_report')
+        prompt_in = self.analyst_assistant_template.format(context=senior_analyst_report)
+        structured_output = self.llm_report_writer.invoke(prompt_in)
+
+        return {'final_output': structured_output}
 
     def _filter_news_by_company_by_date(self, news_dataset, security, max_date = None):
         
