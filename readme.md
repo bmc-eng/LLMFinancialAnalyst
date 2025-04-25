@@ -13,20 +13,38 @@ Agentic model will have: Earnings direction, drivers of earnings analysis from i
 To build on the work of Kim et al (2024), Xu et al (2025), Zhang, Zhao et al (2024) to produce a multi-agentic financial analyst system that is backtested and creates long-term (3 month) investment decisions. 
 
 ## Running the Project
-This project requires Bloomberg Lab for Enterprise to run. It will require 
+This project requires Bloomberg Lab for Enterprise to run. It will require Textual Analytics for the News datasets, Signal Lab for the Portfolio Analytics and access to Bedrock. 
 
-## Build Steps
+## Deliverables
 The deliverables for this project are:
 
-- A series of Jupyter Notebooks highlighting the research and build steps:
+- A series of Jupyter Notebooks highlighting the research and steps used to construct the models:
     - 01A - PIT datasets -> This is used to get all of the point-in-time financial data
     - 01B - DataPacks -> This is used to get datasets needed to run the strategy backtester
     - 03A - Multi-GPU -> This generates the strategies from the open source LLMs
 
+- Data Module
+    - Data Requester to retrieve and process point-in-time financial statement and company reference datasets
+    - News Requester to retrieve all company news over the backtest time horizon
+- Model Module
+    - model_inference.py to run multi-GPU inference on Huggingface models and generate a strategy
+    - model_helper.py to help request, store and load Huggingface models
+    - model finetuner to help fine tune open source models
+    - model finetune inference to help run inference tasks on the finetuned models
+    - prompts to record all of the system prompts used
+- Agent Module
+    - FinancialAnalystAgent to run financial analysis tasks on a company with financial statement datasets and news datasets
+    - CommitteeAgent to debate the analyst reports and put forward alternative investment thesis
+- Strategy Construction Module
+    - 
+- Strategy Analysis Module
+    - event_study.py is an Event Backtester to test the financial outcome of a strategy
+    - datapacks retrieves the data needed to run the strategy analysis only
+    - 
+
 - Python utilities of helper functions to:
-    - Log outputs of the models
-    - Retrieve models from S3 storage
-    - Request data from Bloomberg for financial statements
+    - Logger for model outputs 
+    - Storage helper to 
     - Construction of portfolio legs
 
 - Key model files:
@@ -53,6 +71,8 @@ V1 is complete, gets the data and pivots into a format that can be converted int
 
 
 ## Model Development Notes
+
+#### 24th Apr - Successful run of the Agentic backtest
 
 #### 23rd Apr - Added the Agentic debate format
 Added the debate format into the test example. Changed and modified the prompts slightly to build consensus and avoid the conversation going round and round in circles. Implemented as .py file in object format

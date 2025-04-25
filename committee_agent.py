@@ -1,3 +1,12 @@
+###########################
+####   Introduction #######
+###########################
+
+# This module details the prompts and code needed to run the Investment Committee Agent. 
+# 
+
+
+
 import boto3
 import botocore
 import random
@@ -62,7 +71,7 @@ class CommitteeAgent():
 
     def __init__(self):
         """
-        Constructor for CommitteeAgent. Requires information on a single company
+        Constructor for CommitteeAgent.
         """
         # configure connectivity to Bedrock
         config = botocore.config.Config(read_timeout=1000)
@@ -141,12 +150,17 @@ class CommitteeAgent():
         self.committee_workflow.set_entry_point("handle_buy")
         self.committee_workflow.add_edge('result', END)
 
+        # Compile the LangGraph app
         self.app = self.committee_workflow.compile()
         
     
     def run(self, senior_analyst_report:str, 
             financial_statement_analysis: str, security_data: dict):
-        
+        """
+        Entry point into the Agent. 
+        senior_analyst_report: str - a summary report from the FinancialAnalysisAgent
+        financial_statement_analysis: str - the initial report on the 
+        """
         initial_state = {
             'count':0,
             'history':['Nothing'],
@@ -164,6 +178,9 @@ class CommitteeAgent():
         return self.app.invoke(initial_state)
         
     def get_graph(self):
+        """
+        Function to return a Mermaid visual of the Agent
+        """
         return self.app.get_graph()
     
     def _llm_debate_invoke (self, prompt: str) -> str:
@@ -208,21 +225,10 @@ class CommitteeAgent():
                         'current_response': argument, 
                         'count':state.get('count')+1,
                         'last_agent': decision}
-            # if summary == 'Nothing':
-            #     # This is the first comments of the debate
-            #     return {'history': 'START\n' + argument, 
-            #             state_update: argument, 
-            #             'current_response': argument, 
-            #             'count':state.get('count')+1,
-            #             'last_agent': decision}
-            # else:
-            #     return {'history': summary + '\n' + argument, 
-            #             state_update: argument, 
-            #             'current_response': argument, 
-            #             'count':state.get('count')+1,
-            #             'last_agent': decision}
+
         else:
-            # this runs during the debate - the agents can change their decision
+            # this runs during the debate after the analysts have presented their opening arguments
+            # From this point the agents can change their decision
             prompt_in = self.agentic_debate_template.format(decision=decision,
                                                           sector=sector,
                                                           senior_analyst_report=senior_analyst_report,
