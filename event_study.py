@@ -11,10 +11,21 @@ from bloomberg.bquant.signal_lab.workflow import (
     build_backtest,
 )
 
+from bloomberg.bquant.signal_lab.data_workbench import (
+    create_data_pack,
+    load_data_pack,
+    DataPack,
+    DataPackConfig,
+    StorageType,
+    TradingCalendarProxy,
+    FetchMode,
+    FetchErrorHandling
+)
+
 from bloomberg.bquant.signal_lab.workflow.workflow_orchestrator import _WorkflowResults
 
 import utils.event_backtest_helper as ebh
-from utils.backtest_params import get_universe_params, get_return_params, get_analytics_data_config
+from utils.backtest_params import get_universe_params, get_return_params, get_analytics_data_config, get_item_definitions
 
 import numpy as np
 import pandas as pd
@@ -102,6 +113,14 @@ class EventBacktest:
         self.bq: bql.Service    = bql.Service()
         self.bt_results: _WorkflowResults = None
 
+        # load the datapack
+        try:
+            self._data_pack = load_data_pack(storage_path=data_pack_path, storage_type=StorageType.PARQUET)
+        except ValueError: 
+            print('Data missing')
+            self._data_pack = self._create_new_datapack()
+
+        
         # Load the datasets from the datapacks
         self.universe, self.benchmark, self.trading_calendar = get_universe_params(
             self.start, self.end, self.universe_name, data_pack_path
@@ -112,12 +131,14 @@ class EventBacktest:
         self.analytics_data_config = get_analytics_data_config(
             self.start, self.end, self.universe_name, data_pack_path
         )
-        
+    
         # Set up the pricing signal
         self.price.bind_universe(self.universe)
         self.price_df = self.price.df()
 
         self.benchmark_id = f"IndexWeights['{self.universe_name}']"
+        
+            
 
 
     def _bql_execute_single(self, univ: list[str], 
@@ -233,6 +254,32 @@ class EventBacktest:
             # Benchmark YoY Performance
             df_benchmark_performance = self.bt_results.analytics['PerformanceStatisticsByYear'].read()['benchmark'][self.benchmark.id].read()
             return df_strategy_performance, df_benchmark_performance
+
+    
+    def _create_new_datapack(self):
+        """
+        Function to create a new datapack for backtest datasets if one does not exist
+        """
+        data_pack_config = DataPackConfig(pd.Timestamp(self.start),pd.Timestamp(self.end))
+        data_pack_item_definitions = get_item_defintions(self.bq)
+
+        universe_definitions = {
+            index_name: BQLIndexUniverse(self.universe_name)
+        }
+        # create the datapack
+        data_pack = create_data_pack(
+            data_pack_config = data_pack_config,
+            universe_definitions=universe_definitions,
+            data_item_definitions=data_item_definitions,
+            storage_type=StorageType.PARQUET,
+            storage_path=datapack_path,
+            overwrite_existing_data_pack=True  
+        )
+
+        # fetch the data
+        data_pack.run_fetch()
+        return data_pack
+        
 
 
 

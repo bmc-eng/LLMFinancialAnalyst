@@ -1,3 +1,6 @@
+
+import bql 
+
 from bloomberg.bquant.signal_lab.workflow.node import (
     industry_grouping, portfolio_construction)
 from bloomberg.bquant.signal_lab.signal.transformers import WeightingScheme
@@ -5,6 +8,21 @@ from bloomberg.bquant.signal_lab.workflow.factory import (
     UniverseFactory,
     DataItemFactory,
     SignalFactory,
+)
+
+from bloomberg.bquant.signal_lab.data_workbench import (
+    create_data_pack,
+    load_data_pack,
+    DataPack,
+    DataPackConfig,
+    StorageType,
+    BQLIndexUniverse,
+    BQLIndexWeight,
+    BQLData,
+    ListUniverse,
+    TradingCalendarProxy,
+    FetchMode,
+    FetchErrorHandling
 )
 
 from bloomberg.bquant.signal_lab.workflow import AnalyticsDataConfig
@@ -160,5 +178,33 @@ def get_analyst_params(start: str, end: str, data_pack_path: str) -> tuple[DataI
         end=end
     )
     return analyst_ratings
+        
 
+def get_item_definitions(bq: bql.Service):
+    data_item_definitions = {
+        "index_weight": BQLIndexWeight(),
+        "trading_calendar": TradingCalendarProxy(),
     
+        "analyst_rating": BQLData(bq.data.best_analyst_rating()),
+        "target_price": BQLData(bq.data.best_target_price()),
+    
+        "cur_mkt_cap": BQLData(bq.data.cur_mkt_cap()),
+        "day_to_day_tot_return_gross_dvds": BQLData(bq.data.day_to_day_tot_return_gross_dvds()),
+        "beta": BQLData(bq.data.beta(), rolling_date=True, freq="w"),
+        "px_last": BQLData(bq.data.px_last()),
+    
+        'bics_level_1': BQLData(bq.data.classification_name("bics", "1"), rolling_date=True),
+        'bics_level_2': BQLData(bq.data.classification_name("bics", "2"), rolling_date=True),
+        'bics_level_3': BQLData(bq.data.classification_name("bics", "3"), rolling_date=True),
+        'bics_level_4': BQLData(bq.data.classification_name("bics", "4"), rolling_date=True),
+    }
+    return data_item_definitions
+
+
+
+
+
+
+
+
+        

@@ -22,7 +22,7 @@ from dateutil.relativedelta import relativedelta
 ###########################
 
 
-statement_analysis_system_prompt = """You are a financial analyst. Use the following income statement and balance sheet to make a decision on if earnings will increase over the next financial period. Think step-by-step through the financial statement analysis workflow. Your report should have the following sections: 1. Analysis of current profitability, liquidity, solvency and efficiency ratios; 2. time-series analysis across the ratios; 3. Analysis of financial performance; 4. Stock Price analysis; 5. Decision Analysis looking at the positive and negative factors as well as the weighting in the final decision; 6. Final Decision. Make your decision only on the datasets. 7. Provide a breakdown of information that you wished was included to make a better decision. Explain your reasons in less than 250 words. Indicate the magnitude of the increase or decrease. Provide a confidence score for how confident you are of the decision. If you are not confident then lower the confidence score. {financials}"""
+statement_analysis_system_prompt = """You are a financial analyst. Use the following income statement and balance sheet to decide if earnings will increase over the next financial period. Think step-by-step through the financial statement analysis workflow. Your report should have the following sections: 1. Analysis of current profitability, liquidity, solvency and efficiency ratios. State the formula and then show your workings.\n 2. time-series analysis across the ratios\n 3. Analysis of financial performance\n 4. weigh up the positive and negative factors\n 5. Final Decision. Make your decision only on the analysis you have done. Explain your reasons in less than 250 words. Indicate the magnitude of the increase or decrease. Provide a confidence score for how confident you are of the decision. If you are not confident then lower the confidence score. {financials}"""
 
 clean_headlines_system_prompt = """You are an assistant to a financial analyst analyzing {security} You must remove any reference to {security} and their products from the following list of headlines and replace them with the term 'blah'. Replace the names of any people such as ceo in the article with the term 'whah' do not refer to {security} at all in your answer:{headlines}"""
 
@@ -30,7 +30,7 @@ clean_headlines_system_prompt = """You are an assistant to a financial analyst a
 company_news_system_prompt = """You are a financial analyst and are reviewing news for company called blah over the last three months. Blah is in the {sector} sector. Start by listing the revenue drivers for the sector. Then look through the below headlines and determine if blah will see an increase or decrease in their earnings over the next quarter. Think through your response. {headlines}"""
 
 
-senior_analysis_prompt = """You are a senior financial analyst and review your teams work. You are looking at a financial summary and news for 'blah'. Using the summaries only, critique the report and construct an alternative narrative. If the narrative is in agreement with the two reports, make clear your belief in the direction of earning. If in disagreement, state why you disagree. Think through your response. {financial_summary} \n {news_summary}"""
+senior_analysis_prompt = """You are a senior financial analyst and review your teams work. You are looking at a financial summary, financial statements and news report for 'blah'. Using the summaries and the financial statements only, review both reports and decide if you agree with the narrative of earnings increase or decrease. If your narrative is in agreement with the two reports, make clear your belief in the direction of earnings over the next quarter. If in disagreement, state why you disagree. Think through your response. Analyst Summary: {financial_summary} \n News Summary: {news_summary} \n Financial Statements: {financial_statements}"""
 
 analyst_writer_prompt = """You are an assistant to a financial analyst. You are responsible for formatting the documents that the analyst produces into a machine readable format. Use only the information provided in the context. Convert it into the structured output. Do not add anything to the analysts report and do not change the recommendation. Do not hallucinate. Find the investment decision. Find the conclusion. Add all of the wording of the thought process into the steps section. context: {context}"""
 
@@ -63,7 +63,7 @@ class EarningsReportOutput(BaseModel):
 class AnalystState(TypedDict):
     """Class used by LangGraph to record State"""
     company_details: Optional[CompanyData]
-    initial_analysis: Optional[str]
+    financial_report: Optional[str]
     cleaned_headlines: Optional[list]
     news_report: Optional[str]
     senior_report: Optional[str]
@@ -181,7 +181,7 @@ class FinancialAnalystAgent:
         sec_fs = company_details['sec_fs']
         prompt_in = self.statement_analysis_template.format(financials=sec_fs)
         financial_analysis = self._analyst_llm(self.llm_thinker, prompt_in)
-        return {'initial_analysis': financial_analysis}
+        return {'financial_report': financial_analysis}
 
     
     def _clean_headlines(self, state):
@@ -200,14 +200,17 @@ class FinancialAnalystAgent:
         clean_headlines = state.get('cleaned_headlines')
         prompt_in = self.company_news_template.format(headlines=clean_headlines[1:], sector=company_details['sector'])
         news_summarisation = self._analyst_llm(self.llm_thinker, prompt_in)
-        return {'news_summary': news_summarisation}
+        return {'news_report': news_summarisation}
 
     
     def _final_report(self, state):
         company_details = state.get('company_details')
-        initial_analysis = state.get('initial_analysis')
-        news_summary = state.get('news_summary')
-        prompt_in = self.senior_analyst_template.format(financial_summary=initial_analysis, news_summary=news_summary)
+        financial_report = state.get('financial_report')
+        news_report = state.get('news_report')
+        sec_fs = company_details['sec_fs']
+        prompt_in = self.senior_analyst_template.format(financial_summary=financial_report, 
+                                                        news_summary=news_report,
+                                                       financial_statements=sec_fs)
         final_report_output = self._analyst_llm(self.llm_thinker, prompt_in)
         return {'senior_report': final_report_output} 
 

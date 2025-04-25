@@ -29,16 +29,16 @@ from typing import Dict, TypedDict, Optional, Annotated
 ######   PROMPTS ##########
 ###########################
 
-debate_agent_initial_system_prompt = """You are part of the investment committee at an asset management firm. Your senior analyst in the {sector} sector has presented the findings of reports with your fellow committee members until you come to an agreement on whether to recommend BUY, SELL or HOLD based on the stock price below and the reports from the analysts. If you are all in agreement then stop. You are advocating to {decision} the stock. Give a short 200 word summary of your decision. Only use the following context. Think through the response. Context: {senior_analyst_report} {financial_statement} {stock_prices}"""
+debate_agent_initial_system_prompt = """You are part of the investment committee at an asset management firm. Your senior analyst in the {sector} sector has presented their opinion on the future direction of earnings for blah. With your fellow committee members, discuss whether you now think the stock is undervalued and should be a BUY or overvalued and should be a SELL. Use DCF analysis to value the stock. Show your workings. You are advocating to {decision} the stock for the next quarter. Give a short 200 word summary of your decision. Only use the following context. Think through the response. Context: {senior_analyst_report} {financial_statement} {stock_prices}"""
 
 
-debate_agent_system_prompt = """You are part of the investment committee at an asset management firm. Your senior analyst in the {sector} sector has presented the findings of reports with your fellow committee members until you come to an agreement on whether to recommend {decision}. Do not repeat any previous arguments. Base your response only on the report and current conversation. If you do not recommend {decision}, state which direction you advocate. Provide the argument in less than 200 words. Think through your analysis. For review: {senior_analyst_report} \nPrior conversation: {conversation} """
+debate_agent_system_prompt = """You are part of the investment committee at an asset management firm. Your senior analyst in the {sector} sector has presented the findings of reports with your fellow committee members until you come to an agreement on whether the stock price is undervalued or overvalued. You previously voted to {decision}. Based on the prior conversation, do you agree with your previous decision or want to change? If you want to change you must explain your reason and show your workings. Do not repeat any previous arguments. Do not use any information other than in the analyst report or the previous conversation. Provide the argument in less than 200 words. Think through your analysis. For review: {senior_analyst_report} \nPrior conversation: {conversation}"""
 
 
 debate_direction_system_prompt = """Based on the response, return the sentiment of the response as BUY, SELL or HOLD. Only return a single word: BUY, SELL or HOLD. Conversation: {conversation}"""
 
 
-result_system_prompt = """You are part of the investment committee at an asset management firm. You hold the deciding vote on whether to BUY, SELL or HOLD a stock. You must always proceed with the majority decision of the analysts. If there is no majority decision, decide on a winner. There can only be one decision. Only output the decision. The conversation is: {conversation}"""
+result_system_prompt = """You are part of the investment committee at an asset management firm. You are responsible for recording the decision of the investment committee. You must record the majority decision of the analysts to BUY, SELL or HOLD the security. If there is no majority decision, the decision should be recorded as HOLD. If there is a majority decision in the voting pattern, you do not change this decision. The voting pattern is: {voting_pattern} \nThe conversation is: {conversation}"""
 
 class Recommendation(BaseModel):
     recommendation: str = Field(..., description="BUY, SELL or HOLD. One value only")
@@ -229,7 +229,8 @@ class CommitteeAgent():
         else:
             # this runs during the debate after the analysts have presented their opening arguments
             # From this point the agents can change their decision
-            prompt_in = self.agentic_debate_template.format(decision=decision,
+            current_consensus = state.get('consensus')
+            prompt_in = self.agentic_debate_template.format(decision=current_consensus[decision],
                                                           sector=sector,
                                                           senior_analyst_report=senior_analyst_report,
                                                           conversation=summary)
@@ -261,7 +262,8 @@ class CommitteeAgent():
     
     def _result(self, state):
         summary = state.get('history')#.strip()
-        prompt_in = self.results_template.format(conversation=summary)
+        voting = state.get('consensus')
+        prompt_in = self.results_template.format(conversation=summary, voting_pattern=list(voting.values()))
         structured_llm = self._llm_debate.with_structured_output(Recommendation)
         return {"results": structured_llm.invoke(prompt_in)}
 
@@ -276,7 +278,7 @@ class CommitteeAgent():
             return 'handle_hold'
 
         # If there is a majority decision then end the process
-        if count % 3 == 0 and len(set(current_consensus.values())) <= 2:
+        if count % 3 == 0 and len(set(current_consensus.values())) <= 1:
             # all the agents are in consensus
             return 'result'
         else:
