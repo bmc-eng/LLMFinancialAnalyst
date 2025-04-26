@@ -113,12 +113,14 @@ class EventBacktest:
         self.bq: bql.Service    = bql.Service()
         self.bt_results: _WorkflowResults = None
 
+        if reload_data:
+            self._data_pack = self._create_new_datapack(data_pack_path)
         # load the datapack
         try:
             self._data_pack = load_data_pack(storage_path=data_pack_path, storage_type=StorageType.PARQUET)
         except ValueError: 
             print('Data missing')
-            self._data_pack = self._create_new_datapack()
+            self._data_pack = self._create_new_datapack(data_pack_path)
 
         
         # Load the datasets from the datapacks
@@ -256,7 +258,7 @@ class EventBacktest:
             return df_strategy_performance, df_benchmark_performance
 
     
-    def _create_new_datapack(self):
+    def _create_new_datapack(self, datapack_path:str):
         """
         Function to create a new datapack for backtest datasets if one does not exist
         """
