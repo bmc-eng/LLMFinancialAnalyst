@@ -15,7 +15,6 @@ import pandas as pd
 from IPython.display import Markdown, display
 from ipywidgets import IntProgress, Label, HBox
 
-#from helper import get_s3_folder
 import company_data
 import prompts
 import utils.model_helper as mh
@@ -47,7 +46,7 @@ class InferenceRun():
         self.model_quant: BitsAndBytesConfig  = run_config['model_quant']   # QuantConfig object from bitsandbytes :QuantConfig
         self.system_prompt: str               = run_config['system_prompt'] # System prompt for inference
         self.multi_gpu: bool                  = run_config['multi-gpu'] # Single thread or multi-gpu
-        #self.fine_tuned: str                  = run_config['fine_tuned_dir']
+        
         
         # data parameters
         self.dataset      = run_config['dataset']
@@ -140,7 +139,7 @@ class InferenceRun():
         # load the accelerator
         accelerator = Accelerator()
         
-        # load the model
+        # load the model and create tokenizer
         model = self.model_helper.load_model(self.model_s3_loc, device={"":accelerator.process_index})
         tokenizer = AutoTokenizer.from_pretrained(self.model_hf_id)
 
@@ -168,12 +167,15 @@ class InferenceRun():
 
         # split the prompts between the available GPUs
         with accelerator.split_between_processes(all_prompts) as prompts:
+            # each GPU will run its own split set of prompts
             results = []
             print("starting backtest...")
             
             for prompt in prompts:
                 try:
+                    # run each prompt through the model on the GPU
                     response = self.run_model(prompt['prompt'], tokenizer, model)
+                    # save the prompt into the correct format
                     formatted_response = {'date': prompt['date'], 
                                           'security': prompt['security'], 
                                           'response': self._format_json(response)}
@@ -189,6 +191,7 @@ class InferenceRun():
         
         # Wait for all GPUs to finish running all their prompts
         accelerator.wait_for_everyone()
+        # gather the results list from each of the GPUs
         results_gathered = gather_object(results)
         accelerator.wait_for_everyone()
 

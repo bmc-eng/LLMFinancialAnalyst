@@ -23,33 +23,27 @@ The deliverables for this project are:
     - 01B - DataPacks -> This is used to get datasets needed to run the strategy backtester
     - 03A - Multi-GPU -> This generates the strategies from the open source LLMs
 
-- Data Module
+- Data Module (requesters)
     - Data Requester to retrieve and process point-in-time financial statement and company reference datasets
     - News Requester to retrieve all company news over the backtest time horizon
-- Model Module
-    - model_inference.py to run multi-GPU inference on Huggingface models and generate a strategy
+- Model Module (models)
     - model_helper.py to help request, store and load Huggingface models
     - model finetuner to help fine tune open source models
-    - model finetune inference to help run inference tasks on the finetuned models
-    - prompts to record all of the system prompts used
-- Agent Module
+- Agent Module (agents)
     - FinancialAnalystAgent to run financial analysis tasks on a company with financial statement datasets and news datasets
     - CommitteeAgent to debate the analyst reports and put forward alternative investment thesis
-- Strategy Construction Module
-    - 
+- Strategy Construction Module 
+    - model_inference.py to run multi-GPU inference on Huggingface models and generate a strategy
+    - model finetune inference to help run inference tasks on the finetuned models
+    - prompts to record all of the system prompts used
 - Strategy Analysis Module
     - event_study.py is an Event Backtester to test the financial outcome of a strategy
-    - datapacks retrieves the data needed to run the strategy analysis only
-    - 
+
 
 - Python utilities of helper functions to:
     - Logger for model outputs 
-    - Storage helper to 
+    - Storage helper to store information in Bloomberg Lab S3
     - Construction of portfolio legs
-
-- Key model files:
-    - event_study.py -> This is the Event Backtester to test the financial outcome of a strategy
-    - modelinference.py -> This is a multi-gpu inference model for generating a strategy
 
 
 ### Get Data

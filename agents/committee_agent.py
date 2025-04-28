@@ -32,7 +32,7 @@ from typing import Dict, TypedDict, Optional, Annotated
 debate_agent_initial_system_prompt = """You are part of the investment committee at an asset management firm. Your senior analyst in the {sector} sector has presented their opinion on the future direction of earnings for blah. With your fellow committee members, discuss whether you now think the stock is undervalued and should be a BUY or overvalued and should be a SELL. Use DCF analysis and other methods to value the stock. Show your workings. You are advocating to {decision} the stock for the next quarter. Give a short 200 word summary of your decision. Only use the following context. Do not use any other information. Think through the response. Context: {senior_analyst_report} {financial_statement} {stock_prices}"""
 
 
-debate_agent_system_prompt = """You are part of the investment committee at an asset management firm. Your senior analyst in the {sector} sector has presented their opinion of blah to you and the fellow committee members. You must now debate on whether the stock price is undervalued or overvalued. You previously voted to {decision}. Based on the prior conversation, do you agree with your previous decision or want to change? Only if you believe the stock is significantly overvalued and are confident that a correction in the price will happen over the next quarter should you recommend SELL. If you want to change you must explain your reason and show your workings. Do not use any information other than in the analyst report or the previous conversation. Provide the argument in less than 150 words. Think through your analysis. For review: {senior_analyst_report} \nPrior conversation: {conversation}"""
+debate_agent_system_prompt = """You are part of the investment committee at an asset management firm. Your senior analyst in the {sector} sector has presented their opinion of blah to you and the fellow committee members. You must now debate on whether the stock price is undervalued or overvalued. You previously voted to {decision}. Based on the prior conversation, comment if you agree with your previous decision or want to change. You should only vote to SELL if your calculations show the stock is significantly overvalued and you believe a correction in the price will happen over the next quarter. You should vote to BUY if the stock is undervalued or flat. If you want to change you must explain your reason and show your workings. Do not use any information other than in the analyst report or the previous conversation. Provide the argument in less than 150 words. Think through your analysis. For review: {senior_analyst_report} \nPrior conversation: {conversation}"""
 
 
 debate_direction_system_prompt = """Based on the response, return the sentiment of the response as BUY, SELL or HOLD. Only return a single word: BUY, SELL or HOLD. Conversation: {conversation}"""
@@ -103,7 +103,7 @@ class CommitteeAgent():
 
         self._llm_report_writer = ChatBedrock(
             client = boto3_bedrock,
-            model_id = model_claude_id,
+            model_id = model_claude_small,
             temperature = 0.01,
             max_tokens = 4000,
             rate_limiter = rate_limiter

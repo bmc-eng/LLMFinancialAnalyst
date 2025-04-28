@@ -152,7 +152,7 @@ class EventBacktest:
 
 
     def _convert_to_figi(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Function to convert Bloomberg tickers in a dataframe to FIGIs for ESL"""
+        """Function to convert Bloomberg tickers in a dataframe to FIGIs for Signal Lab"""
         univ      = df['Security'].to_list()
         field     = {'figi': self.bq.data.composite_id_bb_global()}
         figi      = self._bql_execute_single(univ, field)
