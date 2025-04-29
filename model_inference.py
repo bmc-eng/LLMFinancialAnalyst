@@ -15,7 +15,7 @@ import pandas as pd
 from IPython.display import Markdown, display
 from ipywidgets import IntProgress, Label, HBox
 
-import company_data
+import requesters.company_data as company_data
 import prompts
 import utils.model_helper as mh
 from utils.logger import Logger

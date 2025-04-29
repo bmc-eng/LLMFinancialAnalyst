@@ -31,16 +31,24 @@ class SecurityData:
             self.data = use_local
 
     
-    def get_unique_securities(self) -> list[str]:
+    def get_unique_securities(self, is_figi=False) -> list[str]:
         """
         Function to get all of the unique securities in a dataset
         Return: List of securities
         """
         secs = []
+        # loop through the dates
         for date in self.data.keys():
+            # loop through the securities on the date
             for sec in self.data[date].keys():
-                if sec not in secs:
-                    secs.append(sec)
+                if is_figi:
+                    # get the figi
+                    figi = self.data[date][sec]['mt']['figi']
+                    if figi not in secs:
+                        secs.append(figi)
+                else:
+                    if sec not in secs:
+                        secs.append(sec)
         return secs
     
     

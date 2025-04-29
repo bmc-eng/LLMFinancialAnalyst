@@ -49,8 +49,11 @@ class AgenticRun(StrategyConstruction):
         # Run the committee agent
         committee_report = self.committee_agent.run(senior_analyst_report=financial_report['senior_report'],
                                                financial_statement_analysis=financial_report['financial_report'],
-                                               security_data=company_data)
+                                                    security_data=company_data)
+        # record the end time
         end_time = datetime.now()
+
+        # output into a dictionary to store the results
         decision_dict = {
             'date': as_of_date,
             'security': security,
