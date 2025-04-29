@@ -32,11 +32,11 @@ The deliverables for this project are:
 - Agent Module (agents)
     - FinancialAnalystAgent to run financial analysis tasks on a company with financial statement datasets and news datasets
     - CommitteeAgent to debate the analyst reports and put forward alternative investment thesis
-- Strategy Construction Module 
+- Strategy Construction Module (constructors)
     - model_inference.py to run multi-GPU inference on Huggingface models and generate a strategy
     - model finetune inference to help run inference tasks on the finetuned models
     - prompts to record all of the system prompts used
-- Strategy Analysis Module
+- Strategy Analysis Module (analytics)
     - event_study.py is an Event Backtester to test the financial outcome of a strategy
 
 

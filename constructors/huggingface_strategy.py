@@ -18,7 +18,7 @@ import pandas as pd
 #from helper import get_s3_folder
 #import company_data
 import prompts
-import utils.model_helper as mh
+import models.model_helper as mh
 #from utils.logger import Logger
 
 from tqdm import tqdm
@@ -53,7 +53,6 @@ class HuggingfaceRun(StrategyConstruction):
         self.model_s3_loc: str                = run_config['model_s3_loc']   # Load the model from cloud storage :str
         self.model_reload: bool               = run_config['model_reload']  # Reload the model from huggingface: bool
         self.model_quant: BitsAndBytesConfig  = run_config['model_quant']   # QuantConfig object from bitsandbytes :QuantConfig
-        self.system_prompt: str               = run_config['system_prompt'] # System prompt for inference
         self.multi_gpu: bool                  = run_config['multi-gpu'] # Single thread or multi-gpu
         
         
@@ -196,13 +195,14 @@ class HuggingfaceRun(StrategyConstruction):
         # Wait for all GPUs to finish running all their prompts
         accelerator.wait_for_everyone()
         # gather the results list from each of the GPUs
-        results_gathered = gather_object(results)
+        self.results_gathered = gather_object(results)
         accelerator.wait_for_everyone()
 
         # Clean up the backtest and save the results
         if accelerator.is_main_process:
-            self.cached_results = results_gathered
-            self.save_run(str(datetime.datetime.now() - start_time))
+            print("Finished backtest")
+            end_time = datetime.datetime.now()
+            self.save_run(str(end_time - start_time), self.results_gathered)
 
         # Wait for all processes to stop and exit gracefully
         accelerator.wait_for_everyone()

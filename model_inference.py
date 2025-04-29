@@ -204,7 +204,7 @@ class InferenceRun():
                           'dataset': self.dataset, 
                           'model': self.model_hf_id, 
                           'results': results_gathered}
-            self._save_run(end_result)
+            self.save_run(end_result)
 
         # Wait for all processes to stop and exit gracefully
         accelerator.wait_for_everyone()

@@ -76,24 +76,25 @@ class StrategyConstruction():
             **kwargs
         })
     
-    def save_run(self, time_taken:str):
+    def save_run(self, time_taken:str, results):
         """
         Function to store the results of a strategy locally and in Bloomberg Lab S3 Storage
         time_take: str - time taken to run the entire strategy run.
         """
+        self.cached_results = results
         self.output = {
             'run_name': str(self.run_name),
             'run_date': str(self.run_date), 
             'system_prompt': self.system_prompt, 
             'dataset': self.dataset_id, 
-            'model': self.model_hf_id, 
-            'results': self.cached_results
+            'model': self.model_id, 
+            'results': results
         }
         try:
-            local_filename = f'/tmp/{run_name} - {self.run_date}.json'
+            local_filename = f'Results/{self.run_date}.json'
             with open(local_filename, 'w') as f:
                 json.dump(self.output, f)
-            s3h.add_file(local_filename=local_filename)
+            self.s3h.add_file(local_filename=local_filename)
         except:
             print("unable to save file - you can access via self.output to cache your results from the backtest!")
         
