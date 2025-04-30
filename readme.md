@@ -1,6 +1,6 @@
 # LLM Financial Analyst
 
-Dissertation project for Computer Science MSc. This project will investigate the use of LLMs for financial analysis of equities on the Dow Jones and FTSE 100 companies. 
+Dissertation project for Computer Science MSc. This project will investigate the use of LLMs for financial analysis of equities on the Dow Jones companies. 
 
 1. Inference via Open Source and Frontier Models (via AWS Bedrock) for financial statement analysis
 2. Construction of an events backtester built on top of Bloomberg Signal Lab libraries
@@ -9,19 +9,28 @@ Dissertation project for Computer Science MSc. This project will investigate the
 
 Agentic model will have: Earnings direction, drivers of earnings analysis from industry reports, peer group analysis, stock valuation model. This will make a prediction on the whether the stock is valued correctly.
 
+The system is implemented in BQuant Enterprise, Bloomberg's cloud based analytics solution.
+
 ## Research Objectives
 To build on the work of Kim et al (2024), Xu et al (2025), Zhang, Zhao et al (2024) to produce a multi-agentic financial analyst system that is backtested and creates long-term (3 month) investment decisions. 
 
 ## Running the Project
-This project requires Bloomberg Lab for Enterprise to run. It will require Textual Analytics for the News datasets, Signal Lab for the Portfolio Analytics and access to Bedrock. 
+This project requires BQuant Enterprise to run. It will require Textual Analytics for the News datasets, Signal Lab for the Portfolio Analytics and access to Bedrock. 
 
 ## Deliverables
 The deliverables for this project are:
 
 - A series of Jupyter Notebooks highlighting the research and steps used to construct the models:
-    - 01A - PIT datasets -> This is used to get all of the point-in-time financial data
-    - 01B - DataPacks -> This is used to get datasets needed to run the strategy backtester
-    - 03A - Multi-GPU -> This generates the strategies from the open source LLMs
+    - 01 - Introduction -> Introduction to the project and code to install key libraries depending on if this is run for analysis or strategy construction
+    - 01A - Financial Datasets -> This is used to get all of the point-in-time financial data, data needed for the analytics and strategy evaluation modules
+    - 01B - Open Source Models -> This is to cache the Huggingface open-source models in BQuant Enterprise S3 storage
+    - 01C - News Datasets -> Executes the request of Bloomberg News Headlines used for company trends analysis
+    - 02A - Open Source Strategy Construction -> Run the Strategy Construction process for open-source models
+    - 02B - Frontier Strategy Construction -> Run the Strategy Construction process to build trades for the Closed Source models
+    - 03A - Finetuning -> Fine-tuned model for predicting EPS
+    - 03B - Agentic Strategy Construction -> Construct the trade report for the Agentic Solution
+    - 04A - Analysis - Earning Estimates
+    - 04B - Analysis - Stock Recommendations
 
 - Data Module (requesters)
     - Data Requester to retrieve and process point-in-time financial statement and company reference datasets
@@ -43,30 +52,12 @@ The deliverables for this project are:
 - Python utilities of helper functions to:
     - Logger for model outputs 
     - Storage helper to store information in Bloomberg Lab S3
-    - Construction of portfolio legs
-
-
-### Get Data
-V1 is complete, gets the data and pivots into a format that can be converted into a prompt easily. To do need a better V2 version that is truely point in time:
-
-- Get a list of reporting dates by company
-- Create a company specific object
-    - name
-    - reporting date []
-        - income statement (-5 periods)
-        - balance sheet (-5 periods)
-        - pricing (-1Y daily)
-    - prompt
-        - result []
-    - populate_data()
-
-- Create a list of trades by date, company and buy/sell/ hold based on LLM output
-- Get the reported date to make sure this is point-in-time
 
 
 ## Model Development Notes
 
 #### 24th Apr - Successful run of the Agentic backtest
+Run the model with Claude and Llama
 
 #### 23rd Apr - Added the Agentic debate format
 Added the debate format into the test example. Changed and modified the prompts slightly to build consensus and avoid the conversation going round and round in circles. Implemented as .py file in object format

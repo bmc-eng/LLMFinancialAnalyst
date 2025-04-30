@@ -4,8 +4,8 @@ import os
 class S3Helper:
     """
     Helper class to handle files in a folder moving to S3 storage
-    in the Bloomberg Lab sandbox. Initialize with a project folder name for S3
-    project_folder: str - sub folder in Bloomberg Lab to save project data
+    in the BQuant sandbox. Initialize with a project folder name for S3
+    project_folder: str - sub folder in BQuant to save project data
     """
     
     def __init__(self, project_folder: str):
@@ -47,7 +47,7 @@ class S3Helper:
         """
         Upload a file from the project directory to S3
         local_filename: str - the file to upload from local storage
-        s3_folder: str - the folder to save the file in Bloomberg Lab S3
+        s3_folder: str - the folder to save the file in BQuant S3
         """
         # check to see if the file is part of a file structure
         if local_filename.find('/') >=0:
@@ -67,7 +67,7 @@ class S3Helper:
     def delete_file(self, filename: str):
         """
         Delete a single file
-        filename: str - file name in Bloomberg Lab S3 to delete. Includes the subfolder path
+        filename: str - file name in BQuant S3 to delete. Includes the subfolder path
         """
         obj_name = f'{self.username}/{self.project_folder}/{filename}'
         self.client.delete_object(Bucket=self.bucket, Key=obj_name)
@@ -77,7 +77,7 @@ class S3Helper:
     def delete_folder(self, s3_folder:str):
         """
         Delete all files in a folder
-        s3_folder: str - the folder in Bloomberg Lab S3 to delete
+        s3_folder: str - the folder in BQuant S3 to delete
         """
         files = self.list_folder(s3_folder)
         for file in files:
@@ -87,7 +87,7 @@ class S3Helper:
     def list_folder(self, s3_folder:str = None) -> list[str]:
         """
         List all of the files in an s3 folder.
-        s3_folder: str - the sub folder in Bloomberg Lab S3 storage
+        s3_folder: str - the sub folder in BQuant S3 storage
         Return: List of files
         """
         if s3_folder != None:
@@ -108,7 +108,7 @@ class S3Helper:
     
     def get_file(self, filename:str, local_filename: str = None):
         """
-        Download a file from Bloomberg Lab S3
+        Download a file from BQuant S3
         filename: str - file in S3 to download. Remove the project folder name before passing
         """
         obj_name = f'{self.username}/{self.project_folder}/{filename}'
