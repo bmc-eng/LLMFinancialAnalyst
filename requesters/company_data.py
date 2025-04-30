@@ -133,10 +133,16 @@ class SecurityData:
         output_list = []
         dates = self.get_dates()
         for date in dates:
+            # check to make sure security is unique
+            sec_check = []
             securities_reporting = self.get_securities_reporting_on_date(date)
 
             for security in securities_reporting:
-                output_list.append({'date': date, 'security': security})
+                secs = security.split(' ')
+                if not secs[0] in sec_check:
+                    # This is unique
+                    sec_check.append(secs[0])
+                    output_list.append({'date': date, 'security': security})
 
         return output_list
         

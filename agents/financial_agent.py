@@ -22,15 +22,15 @@ from dateutil.relativedelta import relativedelta
 ###########################
 
 
-statement_analysis_system_prompt = """You are a financial analyst. Use the following income statement and balance sheet to calculate if earnings will increase over the next 3 months. Think step-by-step through the workflow of a financial analyst. Your report should have the following sections: 1. Analysis of current profitability, liquidity, solvency and efficiency ratios. State the formula and show your workings.\n 2. time-series analysis across the ratios\n 3. Analysis of financial performance\n 4. summary of the positive and negative factors\n 5. Stock price analysis such as DCF\n 6. Final Decision. Make your decision only on the analysis you have done. Explain your reasons in less than 250 words. Indicate the magnitude of the increase or decrease. Provide a confidence score for how confident you are of the decision. If you are not confident then lower the confidence score. {financials}"""
+statement_analysis_system_prompt = """You are an equity financial analyst. You must predict if the company's earnings will increase in the next quarter using only the financial statements provided. Think step-by-step through the workflow of a financial analyst. Your report should consider analysis of current profitability, liquidity, solvency and efficiency ratios. State the formula and show your workings. Provide an earnings decision with a confidence score of your decision. Indicate the magnitude of the increase or decrease. If you are not confident then lower the confidence score. Financial Statement: {financials}"""
 
 clean_headlines_system_prompt = """You are an assistant to a financial analyst analyzing {security} You must remove any reference to {security} and their products from the following list of headlines and replace them with the term 'blah'. Replace the names of any people such as ceo in the article with the term 'whah' do not refer to {security} at all in your answer:{headlines}"""
 
 
-company_news_system_prompt = """You are a financial analyst and are reviewing news for company called blah over the last three months. Blah is in the {sector} sector. Start by listing the revenue drivers for the sector. Then look through the below headlines and determine if blah will see an increase or decrease in their earnings over the next quarter. Think through your response. {headlines}"""
+company_news_system_prompt = """You are a financial analyst and are reviewing news for company called blah over the last three months. You must decide if you think blah will outperform over the next quarter based only on the below headlines. Blah is in the {sector} sector. Start by listing the revenue drivers for the sector. Then look through the headlines and determine if blah will see an increase or decrease in their earnings over the next quarter. Think step-by-step for the overall trends in the headlines. {headlines}"""
 
 
-senior_analysis_prompt = """You are a senior financial analyst in the {sector} sector. You are looking at a financial summary and a summary of company trends for 'blah'. Using these documents only, given your opinion on whether you think earnings increase or decrease. Think through the analysis step-by-step. Consider the financial summary and also the company trends. If your narrative is in agreement with the reports, make clear your belief in the direction of earnings over the next quarter. Your report should also contain a recommendation to buy or sell the stock. Use stock valuation formulas to calculate if the stock is a BUY or SELL. Show your calculations. Think through your response. Check clearly how confident the analyst is in their summary. Analyst Summary: {financial_summary} \n Company trends: {news_summary}"""
+senior_analysis_prompt = """You are a senior financial analyst and review your teams work. You are looking at a financial summary, financial statements and news report for 'blah'. Using the summaries and the financial statements only, review both reports and decide if you agree with the narrative of earnings increase or decrease. If your narrative is in agreement with the two reports, make clear your belief in the direction of earnings over the next quarter. If in disagreement, state why you disagree. Think through your response. Analyst Summary: {financial_summary} \n News Summary: {news_summary} \n"""
 
 analyst_writer_prompt = """You are an assistant to a financial analyst. You are responsible for formatting the documents that the analyst produces into a machine readable format. Use only the information provided in the context. Convert it into the structured output. Do not add anything to the analysts report and do not change the recommendation. Do not hallucinate. Find the investment decision. Find the conclusion. Add all of the wording of the thought process into the steps section. context: {context}"""
 
@@ -208,8 +208,8 @@ class FinancialAnalystAgent:
         financial_report = state.get('financial_report')
         news_report = state.get('news_report')
         sector = company_details['sector']
-        sec_fs = company_details['sec_fs']
-        prompt_in = self.senior_analyst_template.format(financial_summary=financial_report, 
+        #sec_fs = company_details['sec_fs']
+        prompt_in = self.senior_analyst_template.format(financial_summary=financial_report,
                                                         news_summary=news_report,
                                                        sector=sector)
         final_report_output = self._analyst_llm(self.llm_thinker, prompt_in)
