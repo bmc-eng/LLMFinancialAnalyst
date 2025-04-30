@@ -25,8 +25,8 @@ from bloomberg.bquant.signal_lab.data_workbench import (
 
 from bloomberg.bquant.signal_lab.workflow.workflow_orchestrator import _WorkflowResults
 
-import utils.event_backtest_helper as ebh
-from utils.backtest_params import get_universe_params, get_return_params, get_analytics_data_config, get_item_definitions
+import analytics.event_backtest_helper as ebh
+from analytics.backtest_params import get_universe_params, get_return_params, get_analytics_data_config, get_item_definitions
 
 import numpy as np
 import pandas as pd
