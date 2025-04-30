@@ -19,7 +19,8 @@ from bloomberg.bquant.signal_lab.data_workbench import (
     StorageType,
     TradingCalendarProxy,
     FetchMode,
-    FetchErrorHandling
+    FetchErrorHandling,
+    BQLIndexUniverse,
 )
 
 from bloomberg.bquant.signal_lab.workflow.workflow_orchestrator import _WorkflowResults
@@ -263,16 +264,16 @@ class EventBacktest:
         Function to create a new datapack for backtest datasets if one does not exist
         """
         data_pack_config = DataPackConfig(pd.Timestamp(self.start),pd.Timestamp(self.end))
-        data_pack_item_definitions = get_item_defintions(self.bq)
+        data_pack_item_definitions = get_item_definitions(self.bq)
 
         universe_definitions = {
-            index_name: BQLIndexUniverse(self.universe_name)
+            self.universe_name: BQLIndexUniverse(self.universe_name)
         }
         # create the datapack
         data_pack = create_data_pack(
             data_pack_config = data_pack_config,
             universe_definitions=universe_definitions,
-            data_item_definitions=data_item_definitions,
+            data_item_definitions=data_pack_item_definitions,
             storage_type=StorageType.PARQUET,
             storage_path=datapack_path,
             overwrite_existing_data_pack=True  
