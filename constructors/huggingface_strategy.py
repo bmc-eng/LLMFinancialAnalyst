@@ -1,6 +1,4 @@
 import json
-#import boto3
-#from s3fs import S3FileSystem
 import os
 import datetime
 
@@ -9,17 +7,13 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 import torch
 from accelerate import Accelerator, notebook_launcher
 from accelerate.utils import gather_object
-#from peft import PeftModel # PEFT does not work with multi-GPU
+
 
 import pandas as pd
-#from IPython.display import Markdown, display
-#from ipywidgets import IntProgress, Label, HBox
 
-#from helper import get_s3_folder
-#import company_data
 import prompts
 import models.model_helper as mh
-#from utils.logger import Logger
+
 
 from tqdm import tqdm
 from constructors.strategy_construction import StrategyConstruction
@@ -56,8 +50,6 @@ class HuggingfaceRun(StrategyConstruction):
         self.multi_gpu: bool                  = run_config['multi-gpu'] # Single thread or multi-gpu
         
         
-        # data parameters
-        self.dataset_loc  = run_config['data_location']
 
     
     def _run_model_specific_backtest(self):

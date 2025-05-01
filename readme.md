@@ -2,7 +2,7 @@
 
 Dissertation project for Computer Science MSc. This project will investigate the use of LLMs for financial analysis of equities on the Dow Jones companies. 
 
-1. Inference via Open Source and Frontier Models (via AWS Bedrock) for financial statement analysis
+1. Inference via Open Source and Closed Source Models (via AWS Bedrock) for financial statement analysis
 2. Construction of an events backtester built on top of Bloomberg Signal Lab libraries
 3. Comparison of models to the base
 4. Creation of an agentic model that takes into account news and industry reports (also fine tune an open source model for financial statement analysis)
@@ -17,7 +17,7 @@ To build on the work of Kim et al (2024), Xu et al (2025), Zhang, Zhao et al (20
 ## Running the Project
 This project requires BQuant Enterprise to run. It will require Textual Analytics for the News datasets, Signal Lab for the Portfolio Analytics and access to Bedrock. 
 
-## Deliverables
+## Notebooks
 The deliverables for this project are:
 
 - A series of Jupyter Notebooks highlighting the research and steps used to construct the models:
@@ -53,6 +53,26 @@ The deliverables for this project are:
     - Logger for model outputs 
     - Storage helper to store information in Bloomberg Lab S3
 
+## Key Files
+
+- agents
+    - committee_agent.py -> The code for the committee agent
+    - financial_agent.py -> The code for company valuation based on financial statement analysis and company trends
+- constructors
+    - strategy_construction.py -> Base class for constructing and running backtest on LLMs
+    - huggingface_strategy.py -> Child class for open source multi-gpu models
+    - agentic_inference.py -> Child class for agentic model
+    - model_finetuned_inference.py -> Child class for fine-tuned model inference
+- models
+    - model_helper.py -> Class for handling open-source models
+- requesters
+    - company_data.py -> Class for handling the company datasets
+    - data_request_helper.py -> Class for requesting the point in time financial datasets
+- utils
+    - s3_helper.py -> Helper class for controlling model and results saving in BQuant Enterprise S3 Storage
+ 
+## Results
+The Results folder contains the output from the model runs.  
 
 ## Model Development Notes
 

@@ -16,8 +16,8 @@ class ModelHelper(S3Helper):
     def __init__(self, project_folder: str):
         """
         Constructor for ModelHelper. This class is to help manage the saving and 
-        loading of Huggingface models into Bloomberg Lab S3 storage.
-        project_folder: str - Project files in Bloomberg Lab S3 storage
+        loading of Huggingface models into BQuant Enterprise S3 storage.
+        project_folder: str - Project files in BQuant Enterprise S3 storage
         """
         super().__init__(project_folder)
 
@@ -72,7 +72,7 @@ class ModelHelper(S3Helper):
     
     def save_model_to_s3(self,local_model_folder: str, s3_model_folder: str):
         """
-        Save a Huggingface model to Bloomberg Lab S3 Storage
+        Save a Huggingface model to BQuant Enterprise S3 Storage
         local_model_folder: str - location in the project folder of the model
         s3_model_name: str - location in S3 to store the model
         """
@@ -90,7 +90,7 @@ class ModelHelper(S3Helper):
     
     def list_model_files(self, model_name) -> list[str]:
         """
-        List all of the files for a particular model in Bloomberg Lab S3
+        List all of the files for a particular model in BQuant Enterprise S3
         model_name: str - Name of the model to find
         """
         return super().list_folder(model_name)
@@ -116,7 +116,7 @@ class ModelHelper(S3Helper):
     def delete_model(self, model_name):
         """
         Delete the model from the S3 bucket
-        model_name: str - Model to delete from Bloomberg Lab S3 storage
+        model_name: str - Model to delete from BQuant Enterprise S3 storage
         """
         super().delete_folder(model_name)
         print(f'Model deleted: {model_name}')
