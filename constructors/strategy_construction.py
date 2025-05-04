@@ -52,10 +52,10 @@ class StrategyConstruction():
         self._run_model_specific_backtest()
 
         # record the end time
-        end_time = datatime.now()
+        end_time = datetime.now()
 
         # save the results
-        self.save_run(str(end_time - start_time))
+        self.save_run(str(end_time - start_time), self.cached_results)
 
     def _run_model_specific_backtest(self):
         """
